@@ -7,7 +7,11 @@ export {
   listAllPayoutRequests,
   changePayoutStatus,
 } from "./application/manage-payouts";
-export { MIN_PAYOUT_AMOUNT, PAYOUT_COOLDOWN_DAYS } from "./domain/payout-rules";
+export {
+  MIN_PAYOUT_AMOUNT,
+  PAYOUT_COOLDOWN_DAYS,
+  calculateAuthorEarning,
+} from "./domain/payout-rules";
 export type {
   AuthorBalanceSummary,
   AuthorModelSummary,

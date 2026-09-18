@@ -3,11 +3,7 @@ import { prisma } from "@infrastructure/database";
 import { NotFoundError } from "@shared/errors";
 import { getConfig } from "@shared/config";
 import type { PaymentProviderStatus } from "@infrastructure/payments";
-// Deliberate exception to "import other modules only via their index.ts":
-// `calculateAuthorEarning` is a pure, dependency-free domain function not
-// currently re-exported from `@modules/authors`'s public contract, and the
-// authors module is out of scope to edit here. See final task report.
-import { calculateAuthorEarning } from "@modules/authors/domain/payout-rules";
+import { calculateAuthorEarning } from "@modules/authors";
 import { decidePaymentTransition } from "../domain/decide-payment-transition";
 import type { PaymentTransitionResult } from "../domain/payment-transition-result";
 
