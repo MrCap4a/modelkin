@@ -1,0 +1,395 @@
+// Prisma schema — Моделкин.рф
+// See DATABASE.md for entity relationship diagram and design rationale.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Auth / Users
+// ---------------------------------------------------------------------------
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  avatarUrl    String?
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  sessions            Session[]
+  authoredModels      Model[]              @relation("ModelAuthor")
+  cart                Cart?
+  orders              Order[]
+  ownerships          UserModelOwnership[]
+  customOrders        CustomOrder[]
+  payouts             AuthorPayout[]
+  passwordResetTokens PasswordResetToken[]
+  processedPayouts    AuthorPayout[]       @relation("PayoutProcessedBy")
+
+  @@index([role])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  tokenHash String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog
+// ---------------------------------------------------------------------------
+
+enum ModelStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+model Model {
+  id          String      @id @default(cuid())
+  title       String
+  slug        String      @unique
+  description String
+  price       Int
+  status      ModelStatus @default(DRAFT)
+  authorId    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  publishedAt DateTime?
+
+  // Generated tsvector column (russian full-text search), added via raw SQL
+  // in a follow-up migration. Declared here so `prisma db pull` stays accurate.
+  // Not selectable through Prisma Client.
+  searchVector Unsupported("tsvector")?
+
+  author     User?                @relation("ModelAuthor", fields: [authorId], references: [id])
+  tags       ModelTag[]
+  images     ModelImage[]
+  files      ModelFile[]
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  ownerships UserModelOwnership[]
+
+  @@index([status])
+  @@index([authorId])
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  models ModelTag[]
+}
+
+model ModelTag {
+  modelId String
+  tagId   String
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([modelId, tagId])
+  @@index([tagId])
+}
+
+model ModelImage {
+  id         String  @id @default(cuid())
+  modelId    String
+  storageKey String
+  sortOrder  Int     @default(0)
+  alt        String?
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+}
+
+model ModelFile {
+  id           String   @id @default(cuid())
+  modelId      String
+  storageKey   String
+  originalName String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@index([modelId])
+}
+
+// ---------------------------------------------------------------------------
+// Cart
+// ---------------------------------------------------------------------------
+
+model Cart {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
+}
+
+model CartItem {
+  cartId    String
+  modelId   String
+  createdAt DateTime @default(now())
+
+  cart  Cart  @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  model Model @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@id([cartId, modelId])
+  @@index([modelId])
+}
+
+// ---------------------------------------------------------------------------
+// Orders / Payments
+// ---------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  userId      String
+  status      OrderStatus @default(PENDING_PAYMENT)
+  totalAmount Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id])
+  items    OrderItem[]
+  payments Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model OrderItem {
+  id                  String  @id @default(cuid())
+  orderId             String
+  modelId             String
+  titleSnapshot       String
+  priceSnapshot       Int
+  // Author-earnings snapshot, captured at the moment an order transitions to PAID
+  // (see authors module). Nullable because a model may have no attributed author.
+  authorId            String?
+  commissionBps       Int?
+  authorEarningAmount Int?
+
+  order     Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  model     Model               @relation(fields: [modelId], references: [id])
+  ownership UserModelOwnership?
+
+  @@index([orderId])
+  @@index([modelId])
+  @@index([authorId])
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  orderId           String
+  provider          String
+  providerPaymentId String
+  status            PaymentStatus @default(PENDING)
+  amount            Int
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerPaymentId])
+  @@index([orderId])
+}
+
+model UserModelOwnership {
+  id          String   @id @default(cuid())
+  userId      String
+  modelId     String
+  orderItemId String   @unique
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  model     Model     @relation(fields: [modelId], references: [id])
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+
+  @@unique([userId, modelId])
+}
+
+// ---------------------------------------------------------------------------
+// Authors (balance / payouts) — extension beyond the base ТЗ list, added per
+// the owner's clarification on how the "Кабинет автора" screens should work.
+// ---------------------------------------------------------------------------
+
+enum PayoutStatus {
+  REQUESTED
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+model AuthorPayout {
+  id                  String       @id @default(cuid())
+  userId              String
+  amount              Int
+  status              PayoutStatus @default(REQUESTED)
+  bankDetailsSnapshot Json
+  requestedAt         DateTime     @default(now())
+  processedAt         DateTime?
+  processedByAdminId  String?
+  note                String?
+
+  user            User  @relation(fields: [userId], references: [id])
+  processedByUser User? @relation("PayoutProcessedBy", fields: [processedByAdminId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------------------
+// Custom orders
+// ---------------------------------------------------------------------------
+
+enum ContactType {
+  TELEGRAM
+  MAX
+  PHONE
+}
+
+enum CustomOrderStatus {
+  NEW
+  IN_PROGRESS
+  WAITING_FOR_REPLY
+  COMPLETED
+  CANCELLED
+}
+
+model CustomOrder {
+  id           String            @id @default(cuid())
+  userId       String?
+  name         String
+  contactType  ContactType
+  contactValue String
+  description  String
+  status       CustomOrderStatus @default(NEW)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  user  User?             @relation(fields: [userId], references: [id])
+  files CustomOrderFile[]
+
+  @@index([status])
+  @@index([userId])
+}
+
+model CustomOrderFile {
+  id            String   @id @default(cuid())
+  customOrderId String
+  storageKey    String
+  originalName  String
+  mimeType      String
+  size          Int
+  createdAt     DateTime @default(now())
+
+  customOrder CustomOrder @relation(fields: [customOrderId], references: [id], onDelete: Cascade)
+
+  @@index([customOrderId])
+}
+
+// ---------------------------------------------------------------------------
+// Platform infrastructure: audit log, rate limiting, background jobs
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  timestamp   DateTime @default(now())
+  actorUserId String?
+  actorRole   String?
+  event       String
+  entityType  String?
+  entityId    String?
+  requestId   String?
+  metadata    Json?
+  ip          String?
+
+  @@index([timestamp])
+  @@index([event])
+  @@index([requestId])
+  @@index([actorUserId])
+}
+
+model RateLimitBucket {
+  id          String   @id @default(cuid())
+  key         String
+  windowStart DateTime
+  count       Int      @default(0)
+
+  @@unique([key, windowStart])
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Job {
+  id        String    @id @default(cuid())
+  type      String
+  payload   Json
+  status    JobStatus @default(PENDING)
+  attempts  Int       @default(0)
+  runAt     DateTime  @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lastError String?
+
+  @@index([status, runAt])
+}
