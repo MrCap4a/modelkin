@@ -4,6 +4,7 @@ export {
   isExtensionAllowed,
   createPresignedUploadUrl,
   createPresignedDownloadUrl,
+  getPublicObjectUrl,
   deleteStorageObject,
   objectExists,
   type StoragePrefix,

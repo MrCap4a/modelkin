@@ -50,11 +50,19 @@ services:
       minio:
         condition: service_healthy
     restart: "no"
+    # Bucket is private by default; previews/ and avatars/ are display
+    # assets served as plain <img src> and are made public-read so the app
+    # doesn't have to presign a URL per thumbnail on every catalog render.
+    # models/ (STL) and custom-orders/ (customer-submitted files) stay
+    # private — those are only ever served through a signed, ownership- or
+    # admin-checked URL (@modules/downloads, @modules/custom-orders).
     entrypoint: >
       /bin/sh -c "
       mc alias set local http://minio:9000 modelkin modelkin-secret &&
       (mc mb local/modelkin || true) &&
-      mc anonymous set none local/modelkin
+      mc anonymous set none local/modelkin &&
+      mc anonymous set download local/modelkin/previews &&
+      mc anonymous set download local/modelkin/avatars
       "
 
   app:

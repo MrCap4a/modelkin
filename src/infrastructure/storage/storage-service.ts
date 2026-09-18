@@ -47,6 +47,22 @@ export function generateStorageKey(prefixKey: StoragePrefix, originalName: strin
   return `${prefix}${randomUUID()}${ext}`;
 }
 
+/**
+ * Only `previews/` and `avatars/` are public-read (see the `minio-init`
+ * bucket policy in docker-compose.yml) — plain display assets rendered as
+ * `<img src>`, cheap to construct a URL for without a per-request signature.
+ * `models/` (STL) and `custom-orders/` stay private and MUST go through
+ * `createPresignedDownloadUrl` behind an ownership/admin check instead —
+ * never call this for those prefixes.
+ */
+export function getPublicObjectUrl(storageKey: string): string {
+  const config = getConfig().storage;
+  if (!config.publicHostForCsp) {
+    throw new StorageError("S3_PUBLIC_HOST_FOR_CSP не настроен");
+  }
+  return `${config.publicHostForCsp}/${config.bucket}/${storageKey}`;
+}
+
 export async function createPresignedUploadUrl(params: {
   key: string;
   contentType: string;
