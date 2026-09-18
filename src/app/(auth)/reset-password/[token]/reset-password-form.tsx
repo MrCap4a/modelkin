@@ -2,7 +2,11 @@
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { confirmPasswordResetSchema, PASSWORD_REQUIREMENTS } from "@modules/auth";
+// Imported from concrete files, not the `@modules/auth` barrel: that
+// barrel also re-exports server-only use cases (`import "server-only"`),
+// which breaks when pulled into a Client Component's bundle.
+import { confirmPasswordResetSchema } from "@modules/auth/domain/confirm-password-reset.schema";
+import { PASSWORD_REQUIREMENTS } from "@modules/auth/domain/password-policy";
 import { FormField } from "../../_components/form-field";
 import { SubmitButton } from "../../_components/submit-button";
 import { confirmPasswordResetAction } from "./actions";

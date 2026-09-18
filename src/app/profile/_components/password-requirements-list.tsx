@@ -1,4 +1,7 @@
-import { PASSWORD_REQUIREMENTS } from "@modules/auth";
+// Imported from the concrete file, not the `@modules/auth` barrel: that
+// barrel also re-exports server-only use cases (`import "server-only"`),
+// which breaks when pulled into a Client Component's bundle.
+import { PASSWORD_REQUIREMENTS } from "@modules/auth/domain/password-policy";
 
 /** Live checklist matching design.pdf page 8 ("ТРЕБОВАНИЯ К ПАРОЛЮ"). */
 export function PasswordRequirementsList({ password }: { password: string }) {
