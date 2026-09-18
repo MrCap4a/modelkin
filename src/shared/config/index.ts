@@ -25,7 +25,12 @@ export function getConfig() {
       secretAccessKey: env.S3_SECRET_ACCESS_KEY,
       bucket: env.S3_BUCKET,
       forcePathStyle: env.S3_FORCE_PATH_STYLE ?? false,
-      publicHostForCsp: env.S3_PUBLIC_HOST_FOR_CSP,
+      // Falls back to S3_ENDPOINT: most deployments serve public preview/
+      // avatar images from the same S3-compatible endpoint the app talks
+      // to internally (no separate CDN). Only set S3_PUBLIC_HOST_FOR_CSP
+      // explicitly when the public-facing host genuinely differs (e.g. a
+      // CDN in front of the bucket).
+      publicHostForCsp: env.S3_PUBLIC_HOST_FOR_CSP ?? env.S3_ENDPOINT,
       storagePrefixes: {
         models: "models/",
         avatars: "avatars/",
