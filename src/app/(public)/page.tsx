@@ -1,14 +1,115 @@
-// Placeholder — the catalog/3D-viewer module owner replaces this with the
-// real homepage (design.pdf, page 1): hero, search, popular models, custom
-// order CTA. Kept minimal here only so the app has a working "/" route
-// while the foundation is being built.
-export default function HomePage() {
+import Link from "next/link";
+import { getPopularModels } from "@modules/catalog";
+import { ModelCard } from "./_components/model-card";
+import { SearchBar } from "./_components/search-bar";
+
+export default async function HomePage() {
+  const popularModels = await getPopularModels(4);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-24 sm:px-6">
-      <h1 className="text-3xl font-bold text-ink">Моделкин</h1>
-      <p className="mt-3 max-w-xl text-ink-muted">
-        Маркетплейс проверенных 3D-моделей в формате STL. Главная страница в разработке.
-      </p>
+    <div>
+      {/* Hero */}
+      <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
+          <div>
+            <span className="inline-block rounded-full bg-primary-subtle px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+              Новый стандарт 3D-маркетплейса
+            </span>
+
+            <h1 className="mt-5 text-4xl font-bold leading-tight text-ink sm:text-5xl">
+              Точные 3D-модели для идеальной печати
+            </h1>
+
+            <p className="mt-4 max-w-xl text-ink-muted">
+              Забудьте о неудачных слоях и кривых сетках. Скачивайте оптимизированные STL-модели
+              органайзеров, декора и деталей, разработанные профессиональными инженерами.
+            </p>
+
+            <div className="mt-6">
+              <SearchBar />
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link
+                href="/models"
+                className="rounded-control bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+              >
+                Перейти в каталог
+              </Link>
+              <Link
+                href="/custom-order"
+                className="rounded-control border border-border bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-alt"
+              >
+                Индивидуальный заказ
+              </Link>
+            </div>
+          </div>
+
+          {/* No real product photography ships with this repo — a styled
+              placeholder stands in for the PDF's hero photo rather than
+              fetching an external image at runtime. */}
+          <div className="aspect-[4/3] w-full overflow-hidden rounded-card bg-gradient-to-br from-primary-light via-surface-alt to-primary/20" />
+        </div>
+      </section>
+
+      {/* Popular this week */}
+      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-ink">Популярно на этой неделе</h2>
+          <Link href="/models" className="text-sm font-semibold text-primary hover:text-primary-hover">
+            Смотреть все модели →
+          </Link>
+        </div>
+
+        {popularModels.length === 0 ? (
+          <p className="mt-8 text-ink-muted">Пока нет опубликованных моделей.</p>
+        ) : (
+          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {popularModels.map((model) => (
+              <ModelCard key={model.id} model={model} />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* How we develop models */}
+      <section className="bg-surface-alt py-14">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <div className="rounded-card border border-border bg-surface p-8 shadow-card sm:p-10">
+            <span className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Как мы разрабатываем модели
+            </span>
+            <h2 className="mt-3 text-2xl font-bold text-ink">Модели создаются специально для 3D-печати</h2>
+            <p className="mt-4 max-w-3xl text-ink-muted">
+              Мы проектируем модели с учётом реального процесса печати: от подготовки файла и выбора
+              ориентации до стабильного результата и удобного использования. Поэтому их проще
+              слайсить, надёжнее печатать и комфортнее применять в жизни.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Custom order CTA */}
+      <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
+        <div className="grid grid-cols-1 items-center gap-8 rounded-card bg-ink p-8 sm:p-10 lg:grid-cols-2">
+          <div>
+            <h2 className="text-2xl font-bold text-white sm:text-3xl">
+              Нужна уникальная модель по вашему чертежу или задумке?
+            </h2>
+            <p className="mt-4 text-sm leading-relaxed text-white/70">
+              Опишите задачу или пришлите эскиз — мы подготовим модель под 3D-печать и выдадим
+              готовый STL файл.
+            </p>
+            <Link
+              href="/custom-order"
+              className="mt-6 inline-block rounded-control bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover"
+            >
+              Создать заявку на моделирование
+            </Link>
+          </div>
+          <div className="aspect-[4/3] w-full overflow-hidden rounded-card bg-white/10" />
+        </div>
+      </section>
     </div>
   );
 }
