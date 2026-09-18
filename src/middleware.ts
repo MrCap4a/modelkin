@@ -21,7 +21,19 @@ function isRequestIdValid(candidate: string | null): candidate is string {
   return !!candidate && /^[a-zA-Z0-9_-]{8,128}$/.test(candidate);
 }
 
-function buildCsp(): string {
+/**
+ * `script-src` uses a per-request nonce (+ `strict-dynamic` so scripts
+ * Next's own nonce'd bootstrap loads are also trusted, without needing a
+ * host allowlist). Next.js auto-detects the nonce for its own inline
+ * RSC-hydration scripts (`self.__next_f.push(...)`) by reading it back out
+ * of the `Content-Security-Policy` **response** header — that's why
+ * `middleware()` below sets this same value on both the forwarded request
+ * headers and the response, not just one. Without a nonce (plain
+ * `script-src 'self'`), the browser blocks those inline scripts outright
+ * and client hydration never runs — found via E2E testing against a real
+ * production build; see SECURITY.md.
+ */
+function buildCsp(nonce: string): string {
   const isProd = process.env.NODE_ENV === "production";
   const s3Host = process.env.S3_PUBLIC_HOST_FOR_CSP;
   const s3Endpoint = process.env.S3_ENDPOINT;
@@ -31,7 +43,7 @@ function buildCsp(): string {
 
   const directives = [
     `default-src 'self'`,
-    `script-src 'self'${isProd ? "" : " 'unsafe-eval'"}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isProd ? "" : " 'unsafe-eval'"}`,
     `style-src 'self' 'unsafe-inline'`,
     `img-src 'self' blob: data: ${imgSrcExtra}`.trim(),
     `font-src 'self' data:`,
@@ -79,13 +91,22 @@ export function middleware(request: NextRequest): NextResponse {
     );
   }
 
+  // btoa, not Node's Buffer — this file runs on the Edge runtime.
+  const nonce = btoa(crypto.randomUUID());
+  const csp = buildCsp(nonce);
+
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-request-id", requestId);
+  requestHeaders.set("x-nonce", nonce);
+  // Next reads the nonce for its own inline hydration scripts off this
+  // *request* header too (not just the response one below) during
+  // rendering — see the comment on buildCsp().
+  requestHeaders.set("Content-Security-Policy", csp);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   response.headers.set("x-request-id", requestId);
-  response.headers.set("Content-Security-Policy", buildCsp());
+  response.headers.set("Content-Security-Policy", csp);
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("X-Frame-Options", "DENY");
