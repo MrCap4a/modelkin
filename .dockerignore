@@ -1,0 +1,17 @@
+node_modules
+.next
+.git
+.gitignore
+logs
+coverage
+playwright-report
+test-results
+.env
+.env.local
+*.md
+.vscode
+.idea
+.minio-data
+.postgres-data
+Dockerfile
+docker-compose*.yml
