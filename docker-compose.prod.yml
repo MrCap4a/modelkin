@@ -1,0 +1,66 @@
+name: modelkin-prod
+
+# Production stack (ТЗ §35). Builds the multi-stage image from ./Dockerfile
+# (Next.js standalone output) instead of running `next dev`. PostgreSQL and
+# S3 are expected to be external/managed services in most deployments — see
+# DEPLOYMENT.md — but are included here under the `with-local-infra` profile
+# for a single-server deployment that doesn't have a managed DB.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d --build            # external DB/S3
+#   docker compose -f docker-compose.prod.yml --profile with-local-infra up -d --build
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - app-logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    # Skip the image's default entrypoint (which runs `prisma migrate
+    # deploy`) — the `app` service already applies migrations on start, and
+    # running them concurrently from two containers is unnecessary.
+    entrypoint: ["npm", "run", "worker"]
+    command: []
+    restart: unless-stopped
+    depends_on:
+      - app
+    env_file: .env
+    volumes:
+      - app-logs:/app/logs
+
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["with-local-infra"]
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-modelkin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-modelkin}
+      POSTGRES_DB: ${POSTGRES_DB:-modelkin}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-modelkin}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  app-logs:
+  postgres-data:
