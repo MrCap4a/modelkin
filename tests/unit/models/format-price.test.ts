@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { formatPriceRub } from "@modules/models";
+// Imports from the concrete file rather than the module barrel
+// (@modules/models) — the barrel now also re-exports the admin write-side
+// use cases (create-model.ts et al.), which start with `import "server-only"`.
+// Evaluating that barrel outside Next's "react-server" resolve condition
+// (i.e. under plain Vitest, with no `vi.mock("server-only", ...)` stub)
+// throws — same reason tests/unit/modules/custom-orders/custom-order-schema.test.ts
+// imports from @modules/custom-orders/domain/custom-order-schema instead of
+// the @modules/custom-orders barrel.
+import { formatPriceRub } from "@modules/models/domain/format-price";
 
 describe("formatPriceRub", () => {
   it("formats a whole-ruble amount without decimals", () => {
