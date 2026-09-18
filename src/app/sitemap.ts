@@ -2,6 +2,13 @@ import type { MetadataRoute } from "next";
 import { getConfig } from "@shared/config";
 import { listPublishedModelSlugs } from "@modules/models";
 
+// Must be rendered per-request, not prerendered at build time: the model
+// list changes independently of deploys (admin publish/hide), and the
+// Docker build stage has no real database to query anyway (it runs with
+// placeholder env vars — see Dockerfile). Without this, `next build`
+// fails outright when there's no reachable DB at build time.
+export const dynamic = "force-dynamic";
+
 /** ТЗ §47 — every PUBLISHED model URL plus the static public pages. */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const appUrl = getConfig().appUrl;
