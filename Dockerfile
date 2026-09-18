@@ -59,22 +59,14 @@ COPY --from=builder /app/public ./public
 
 # Prisma CLI + schema/migrations for `prisma migrate deploy` at container
 # start (docker-entrypoint.sh) — not included in the standalone trace since
-# it's invoked via CLI, not imported at runtime.
+# it's invoked via CLI, not imported at runtime. Copy the whole @prisma/*
+# scope (not just @prisma/client, which the standalone trace above already
+# includes) — the CLI's own runtime deps (@prisma/engines, get-platform,
+# fetch-engine, ...) live there too and are awkward to enumerate by hand.
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
-
-# The `worker` container (docker-compose.prod.yml) reuses this exact image
-# with a different command (`npm run worker`), which runs TypeScript
-# directly via tsx rather than through Next's bundler — so it needs the raw
-# source, tsx itself, and tsconfig.json (path aliases), none of which are
-# part of the standalone trace above.
-COPY --from=builder /app/node_modules/tsx ./node_modules/tsx
-COPY --from=builder /app/node_modules/.bin/tsx ./node_modules/.bin/tsx
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
-COPY --from=builder /app/package.json ./package.json
 
 RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs /app/prisma \
   && chmod +x /app/docker-entrypoint.sh
@@ -85,3 +77,39 @@ EXPOSE 3000
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "server.js"]
+
+# ---------------------------------------------------------------------------
+# 4. worker — background job runner (docker-compose.prod.yml `worker`
+# service targets this stage explicitly). Runs TypeScript directly via tsx
+# rather than through Next's bundler, so — unlike `runner` above — it needs
+# the *full* node_modules (tsx's own deps, e.g. esbuild, aren't part of the
+# standalone trace and are awkward to cherry-pick correctly; two earlier
+# attempts at doing that broke on missing transitive files). Image size is
+# less important for a background worker than for the web-facing `app`
+# image, so trading the minimal-image property away here is the pragmatic
+# choice.
+# ---------------------------------------------------------------------------
+FROM node:20-alpine AS worker
+RUN apk add --no-cache openssl
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+
+RUN addgroup --system --gid 1001 nodejs \
+  && adduser --system --uid 1001 nextjs
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/src ./src
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/docker-entrypoint.sh ./docker-entrypoint.sh
+
+RUN mkdir -p /app/logs && chown -R nextjs:nodejs /app/logs /app/prisma \
+  && chmod +x /app/docker-entrypoint.sh
+
+USER nextjs
+
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["npm", "run", "worker"]

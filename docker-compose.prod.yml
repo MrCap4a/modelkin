@@ -32,6 +32,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      target: worker
     # Skip the image's default entrypoint (which runs `prisma migrate
     # deploy`) — the `app` service already applies migrations on start, and
     # running them concurrently from two containers is unnecessary.
