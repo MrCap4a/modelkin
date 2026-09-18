@@ -19,8 +19,11 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
-# A syntactically valid DATABASE_URL is only needed for `prisma generate`
-# and Next's build-time module evaluation — no DB connection is made here.
+# Placeholder, non-secret values so Zod env validation and Next's
+# build-time module evaluation succeed — nothing here makes a real network
+# call, so there is no real credential to protect. Real secrets are only
+# ever supplied at container *runtime* via `.env`/`env_file`, never baked
+# into the image.
 ENV DATABASE_URL="postgresql://build:build@localhost:5432/build"
 ENV APP_URL="http://localhost:3000"
 ENV S3_ENDPOINT="http://localhost:9000"
