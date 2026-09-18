@@ -65,9 +65,21 @@ POST (Lax блокирует), ни подделать `Origin`.
 
 - React экранирует вывод по умолчанию — `dangerouslySetInnerHTML` не
   используется нигде в проекте.
-- CSP (`src/middleware.ts`) запрещает `unsafe-inline` для скриптов в
-  production (`script-src 'self'`), ограничивает `object-src 'none'`,
+- CSP (`src/middleware.ts`) запрещает `unsafe-inline` для скриптов —
+  `script-src` использует per-request nonce (`'nonce-<value>'
+  'strict-dynamic'`), не голый allowlist, и ограничивает `object-src 'none'`,
   `base-uri 'self'`, `frame-ancestors 'none'`.
+
+  Next.js App Router инжектирует часть своего hydration/RSC-payload через
+  инлайн-скрипты (`<script>self.__next_f.push(...)</script>`) — без nonce в
+  CSP браузер блокирует эти скрипты и клиентская гидратация не проходит
+  (обнаружено при подготовке E2E-тестов, воспроизводилось против реальной
+  production-сборки). Middleware генерирует nonce на каждый запрос и
+  прокидывает один и тот же CSP-заголовок и на forwarded request, и на
+  response — Next автоматически считывает nonce из **response**-заголовка
+  `Content-Security-Policy` и проставляет его на собственные инлайн-скрипты.
+  Проверено вручную на реальной `next build` + `next start`: все инлайн
+  `<script>` получают совпадающий с заголовком `nonce`.
 
 ## Security headers
 

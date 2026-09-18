@@ -89,6 +89,29 @@ modules/<name>/
 место, которое обязано оставаться стабильным при рефакторинге внутренностей
 модуля.
 
+### Модуль `admin`
+
+`src/modules/admin` сейчас содержит только read-side агрегацию для
+дашборда (`getDashboardStats`, `getUsersAndPaymentsOverview`) — статистику
+продаж/пользователей/платежей, собранную из других модулей одним запросом,
+специально под экран `/admin`. Write-side админки (создание/редактирование/
+публикация модели, смена статуса custom order) реализована не как отдельный
+CRUD-слой в `admin`, а как расширение write-стороны уже существующих модулей
+(`@modules/models` — `createModel`/`updateModel`/`publishModel`/`hideModel`/
+`addModelImage`/`addModelFile`; `@modules/custom-orders` —
+`updateCustomOrderStatus`) — авторизация (`requireAdmin()`) проверяется в
+каждом use case или в вызывающей Server Action, ownership бизнес-правил
+остаётся там же, где и остальная бизнес-логика модели/заявки, а не
+дублируется в `admin`.
+
+`src/app/admin/**` (Presentation) — отдельный UI-shell
+(`src/app/admin/layout.tsx`, проверяет `requireAdmin()` на каждый запрос,
+редиректит на `/login` иначе) со своими страницами
+(`models`, `models/new`, `models/[id]`, `custom-orders`,
+`custom-orders/[id]`) и Server Actions (`src/app/admin/models/actions.ts`,
+`src/app/admin/custom-orders/actions.ts`) — новых `app/api/**` Route
+Handlers админка не добавляет, см. [API.md](./API.md#server-actions-остальная-часть-приложения).
+
 ### Расширение: модуль `authors`
 
 В ТЗ раздел 9 не описывает продажу моделей пользователями — по ТЗ каталог

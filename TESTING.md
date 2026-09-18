@@ -58,14 +58,48 @@ npm run test:e2e            # Playwright — требует собранного
 build`); в CI приложение уже собрано и БД засеяна отдельными шагами до
 запуска тестов (см. workflow).
 
-Обязательные happy-path сценарии (ТЗ §49):
+Спецификации — `tests/e2e/*.spec.ts`, каждая соответствует одному
+happy-path сценарию из ТЗ §49; запускать по отдельности —
+`npm run test:e2e -- purchase-flow` (Playwright матчит по имени файла).
+Тестовые вложения (маленькое PNG + минимальный валидный ASCII STL, тот же
+текст, что в `prisma/seed.ts`) лежат в `tests/e2e/fixtures/`. Каждый тест сам
+создаёт нужные ему данные (уникальный email через `Date.now()` и т.п.) — не
+полагайтесь на конкретную позицию в каталоге/списке, ищите по slug/тексту.
 
-- **Покупка**: регистрация → логин → каталог → карточка модели → корзина →
-  оформление заказа → mock-оплата → webhook → ownership → скачивание
-- **Админ**: логин под ADMIN → создание модели → загрузка STL/превью →
-  публикация → модель появляется в публичном каталоге
-- **Индивидуальный заказ**: открыть форму → заполнить поля → прикрепить
-  файл → отправить → заявка видна в админке → админ меняет статус
+- **`purchase-flow.spec.ts`** — регистрация → каталог → карточка модели →
+  корзина → оформление заказа → mock-оплата → ownership (`/profile/purchases`)
+  → скачивание (проверяется редирект/download на `localhost:9000`, т.е. в
+  MinIO). Использует стабильный seed-slug `kronshteyn-dlya-naushnikov`, а не
+  «N-ю карточку в каталоге».
+- **`admin-flow.spec.ts`** — логин под ADMIN → `/admin/models/new` → загрузка
+  превью + STL → публикация → модель появляется в `/models`.
+- **`custom-order-flow.spec.ts`** — гость заполняет форму `/custom-order`,
+  прикрепляет файл, отправляет, видит номер заявки; второй тест в этом же
+  файле проверяет, что заявка видна админу в `/admin/custom-orders`.
+
+`admin-flow.spec.ts` и вторая часть `custom-order-flow.spec.ts` сами
+проверяют (`request.get(...)`, статус `404`), существует ли ещё нужный
+`/admin/**` маршрут, и вызывают `test.skip(...)` с понятным сообщением, если
+нет — так что эти спеки безопасно гонять и до, и после того, как
+соответствующий кусок админки смёржен, без ручного комментирования тестов.
+
+Ранее в разработке nonce-less CSP (`script-src 'self'`) ломал клиентскую
+гидратацию Next.js в production-сборке (браузер блокировал инлайн-скрипты
+гидратации как CSP-нарушение) — из-за этого сценарии, завязанные на
+интерактивность (клики, отправка форм), не проходили бы против
+production-сборки. Исправлено в `src/middleware.ts` (nonce-паттерн CSP, см.
+[SECURITY.md](./SECURITY.md#xss)) и подтверждено вручную на реальной
+`next build`/`next start` — все инлайн-скрипты получают корректный `nonce`.
+
+**Ограничение среды разработки (не баг проекта):** в некоторых
+sandbox-окружениях `npx playwright install` не может скачать Chromium
+(`cdn.playwright.dev` недоступен) — тогда `npm run test:e2e` локально не
+запустится. Это ограничение сети конкретной машины/контейнера, а не
+CI — в GitHub Actions (`.github/workflows/ci.yml`) шаг `npx playwright
+install --with-deps chromium` выполняется в обычной среде с доступом в
+интернет и E2E-джоб гоняется полностью. Если увидите ошибку загрузки
+браузера локально — установите Chromium вручную или запускайте E2E через
+CI/Docker-окружение с доступом к cdn.playwright.dev.
 
 ## Что проверяют unit-тесты (обязательный минимум, ТЗ §49)
 
@@ -76,6 +110,27 @@ build`); в CI приложение уже собрано и БД засеяна
 - правила корзины (одна модель = одна позиция, нельзя добавить уже купленную)
 - идемпотентность создания ownership
 - переходы статусов заказа (`PENDING_PAYMENT → PAID/CANCELLED/REFUNDED`)
+
+## Что проверяют integration/API-тесты сверх unit
+
+- `tests/integration/modules/downloads/get-signed-download-url.test.ts` —
+  скачивание-авторизация (ТЗ §21) сквозь реальную БД: чужому пользователю
+  отказано (`AuthorizationError` + audit `file.download_denied`), владельцу
+  выдан signed URL + audit `file.download`, модель без файла → `NotFoundError`.
+- `tests/integration/api/payments-webhook.test.ts` — `POST
+  /api/payments/webhook` через реальный Route Handler: неверная подпись
+  (`400`), неизвестный `providerPaymentId` (`404`), корректный webhook
+  переводит `Order` в `PAID` и создаёт `UserModelOwnership`, повторный
+  (replay) webhook — идемпотентен (не дублирует ownership).
+- `tests/integration/api/payments-mock-complete.test.ts` — `POST
+  /api/payments/mock/complete`: без сессии (`401`), некорректный `status`
+  (`400`), несуществующий платёж (`404`), платёж другого пользователя
+  (`403`), успешное подтверждение своим владельцем (`200`, `Order` → `PAID`).
+- `tests/integration/api/models-viewer-url.test.ts` — `GET
+  /api/models/[slug]/viewer-url`: `PUBLISHED` модель с файлом → `200` +
+  signed URL; `DRAFT` модель, модель без файла, несуществующий slug → `404`.
+- `tests/integration/api/health.test.ts` — `GET /api/health`: `200` + форма
+  ответа, `x-request-id` прокидывается/генерируется корректно.
 
 ## CI
 
