@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { getCurrentUser } from "@modules/auth";
 import { getCart, type CartItemView } from "@modules/cart";
 import { removeFromCartAction, checkoutAction } from "./actions";
@@ -89,13 +88,9 @@ function CartItemRow({ item }: { item: CartItemView }) {
     <li className="flex items-center gap-4 rounded-card border border-border bg-surface p-4 shadow-card">
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-control bg-surface-alt">
         {item.previewImageUrl ? (
-          <Image
-            src={item.previewImageUrl}
-            alt=""
-            width={64}
-            height={64}
-            className="h-full w-full object-cover"
-          />
+          // S3-hosted preview; host only known at runtime — see model-card.tsx.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.previewImageUrl} alt="" className="h-full w-full object-cover" />
         ) : null}
       </div>
 

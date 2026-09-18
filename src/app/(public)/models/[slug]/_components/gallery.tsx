@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import dynamic from "next/dynamic";
 import type { ModelImageView } from "@modules/models";
 
@@ -70,13 +69,12 @@ export function Gallery({
             <ModelViewer slug={slug} />
           </>
         ) : active?.kind === "image" ? (
-          <Image
+          // S3-hosted preview; host only known at runtime — see model-card.tsx.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
             src={active.image.url}
             alt={active.image.alt ?? title}
-            fill
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-contain"
-            priority
+            className="h-full w-full object-contain"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-ink-muted">
@@ -103,7 +101,12 @@ export function Gallery({
                   <span className="text-xs font-semibold">3D</span>
                 </div>
               ) : (
-                <Image src={thumb.image.url} alt="" fill sizes="80px" className="object-cover" />
+                // eslint-disable-next-line @next/next/no-img-element -- see note above
+                <img
+                  src={thumb.image.url}
+                  alt=""
+                  className="h-full w-full object-cover"
+                />
               )}
             </button>
           ))}

@@ -1,23 +1,14 @@
 import type { NextConfig } from "next";
 
-const s3PublicHost = process.env.S3_PUBLIC_HOST_FOR_CSP;
-
+// No `images.remotePatterns`: next/image's allowed remote hosts are baked
+// in at build time, which conflicts with this project's env-configured,
+// build-once-deploy-anywhere Docker image (the S3/MinIO host is only known
+// at container runtime, not during `docker build`). S3-hosted images
+// (model previews, avatars) are rendered as plain `<img>` instead — see the
+// `eslint-disable @next/next/no-img-element` comments at each call site.
 const nextConfig: NextConfig = {
   output: "standalone",
   reactStrictMode: true,
-  images: {
-    remotePatterns: [
-      ...(s3PublicHost
-        ? [
-            {
-              protocol: s3PublicHost.startsWith("https") ? "https" as const : "http" as const,
-              hostname: new URL(s3PublicHost).hostname,
-              port: new URL(s3PublicHost).port || undefined,
-            },
-          ]
-        : []),
-    ],
-  },
   experimental: {
     serverActions: {
       bodySizeLimit: "2mb",
