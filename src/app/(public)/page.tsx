@@ -45,10 +45,17 @@ export default async function HomePage() {
             </div>
           </div>
 
-          {/* No real product photography ships with this repo — a styled
-              placeholder stands in for the PDF's hero photo rather than
-              fetching an external image at runtime. */}
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-card bg-gradient-to-br from-primary-light via-surface-alt to-primary/20" />
+          <div className="aspect-[4/3] w-full overflow-hidden rounded-card">
+            {/* Static local SVG (public/pic1.svg) — next/image requires
+                dangerouslyAllowSVG for SVG sources, not worth the extra
+                config surface for one hero image. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/pic1.svg"
+              alt="Настольная лампа, органайзеры и подставка для телефона, напечатанные на 3D-принтере"
+              className="h-full w-full object-cover"
+            />
+          </div>
         </div>
       </section>
 
@@ -107,7 +114,14 @@ export default async function HomePage() {
               Создать заявку на моделирование
             </Link>
           </div>
-          <div className="aspect-[4/3] w-full overflow-hidden rounded-card bg-white/10" />
+          <div className="aspect-[4/3] w-full overflow-hidden rounded-card">
+            {/* eslint-disable-next-line @next/next/no-img-element -- see note on pic1.svg above */}
+            <img
+              src="/pic2.svg"
+              alt="Инженер измеряет напечатанную деталь по чертежу"
+              className="h-full w-full object-cover"
+            />
+          </div>
         </div>
       </section>
     </div>

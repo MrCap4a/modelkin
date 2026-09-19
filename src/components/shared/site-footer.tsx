@@ -53,7 +53,8 @@ export function SiteFooter() {
                   Telegram: @modelkin_support
                 </a>
               </li>
-              <li className="text-ink-muted">ИП, ИНН 234504683260</li>
+              <li className="text-ink-muted">ИП Шевченко Денис Александрович</li>
+              <li className="text-ink-muted">ИНН 234504683260</li>
             </ul>
           </div>
         </div>
