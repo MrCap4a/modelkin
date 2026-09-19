@@ -41,17 +41,29 @@ describe("modelAdminInputSchema", () => {
     expect(modelAdminInputSchema.safeParse({ ...base, price: -100 }).success).toBe(false);
   });
 
-  it("rejects a tag slug outside the fixed catalog set", () => {
-    const result = modelAdminInputSchema.safeParse({ ...base, tagSlugs: ["not-a-real-tag"] });
+  it("accepts any non-empty tag slug string (categories are admin-managed, not a fixed enum)", () => {
+    // Membership in the real category set is checked downstream against the
+    // DB (findTagIdsBySlugs silently drops unknown slugs) — the schema only
+    // validates shape, since @modules/tags lets admins add/rename/delete
+    // categories at runtime.
+    const result = modelAdminInputSchema.safeParse({
+      ...base,
+      tagSlugs: ["any-slug-the-db-may-or-may-not-have"],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects an empty-string tag slug", () => {
+    const result = modelAdminInputSchema.safeParse({ ...base, tagSlugs: [""] });
     expect(result.success).toBe(false);
   });
 
-  it("accepts every fixed catalog tag slug", () => {
+  it("rejects more than 10 tag slugs", () => {
     const result = modelAdminInputSchema.safeParse({
       ...base,
-      tagSlugs: ["organayzery", "dekor-i-interer", "instrumenty", "avto", "poleznye-veshchi"],
+      tagSlugs: Array.from({ length: 11 }, (_, i) => `tag-${i}`),
     });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   it("accepts an empty authorEmail (no author)", () => {

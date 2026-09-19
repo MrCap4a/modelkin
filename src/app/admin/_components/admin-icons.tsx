@@ -84,6 +84,20 @@ export function PayoutIcon({ className }: IconProps) {
   );
 }
 
+export function TagIcon({ className }: IconProps) {
+  return (
+    <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M11.3 3.5H6a2.5 2.5 0 00-2.5 2.5v5.3c0 .53.21 1.04.59 1.41l8.7 8.7a2 2 0 002.82 0l5.3-5.3a2 2 0 000-2.82l-8.7-8.7a2 2 0 00-1.41-.59z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="8" cy="8" r="1.4" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
 export function AuditIcon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">

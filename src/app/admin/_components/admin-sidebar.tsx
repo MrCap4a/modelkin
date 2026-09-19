@@ -11,6 +11,7 @@ import {
   PaymentsIcon,
   PayoutIcon,
   RequestsIcon,
+  TagIcon,
   UsersIcon,
 } from "./admin-icons";
 
@@ -25,6 +26,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin", label: "Dashboard", icon: DashboardIcon },
   { href: "/admin/models", label: "Модели", icon: ModelsIcon, matchPrefix: true },
+  { href: "/admin/tags", label: "Категории", icon: TagIcon },
   { href: "/admin/custom-orders", label: "Заявки", icon: RequestsIcon, matchPrefix: true },
   { href: "/admin/users", label: "Пользователи", icon: UsersIcon },
   { href: "/admin/payments", label: "Платежи", icon: PaymentsIcon },

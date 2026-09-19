@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@infrastructure/database";
 import { recordAuditEvent } from "@modules/audit";
 import { NotFoundError, ValidationError } from "@shared/errors";
-import { generateUniqueSlug } from "../domain/generate-slug";
+import { generateUniqueSlug } from "@shared/utils/slugify";
 import type { ModelAdminDetail } from "../domain/model-admin";
 import { findTagIdsBySlugs, findUserIdByEmail, modelSlugExists } from "../infrastructure/admin-model-repository";
 import { getModelForAdmin } from "./get-model-for-admin";

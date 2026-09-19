@@ -8,9 +8,6 @@
 // reference this mirrors).
 
 import { z } from "zod";
-import { CATALOG_TAGS, type CatalogTagSlug } from "@shared/constants/catalog-tags";
-
-const TAG_SLUG_VALUES = CATALOG_TAGS.map((tag) => tag.slug) as [CatalogTagSlug, ...CatalogTagSlug[]];
 
 /**
  * Shared by create + update (admin picks whichever fields it wants to send;
@@ -34,7 +31,11 @@ export const modelAdminInputSchema = z.object({
     .number()
     .int("Цена должна быть целым числом копеек")
     .positive("Цена должна быть больше нуля"),
-  tagSlugs: z.array(z.enum(TAG_SLUG_VALUES)).max(10, "Слишком много тегов").default([]),
+  // Categories are admin-managed (@modules/tags), not a static enum — an
+  // unknown slug is simply dropped when resolving tags to attach
+  // (findTagIdsBySlugs), so it's enough to validate shape here, not
+  // membership in a fixed list.
+  tagSlugs: z.array(z.string().trim().min(1)).max(10, "Слишком много тегов").default([]),
   authorEmail: z
     .union([z.string().trim().email("Некорректный email автора"), z.literal("")])
     .optional(),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { generateUniqueSlug, slugify, transliterate } from "@modules/models/domain/generate-slug";
+import { generateUniqueSlug, slugify, transliterate } from "@shared/utils/slugify";
 
 describe("transliterate", () => {
   it("converts Cyrillic characters to Latin equivalents", () => {
@@ -29,7 +29,7 @@ describe("slugify", () => {
   });
 
   it("falls back to a default base when the title has no sluggable characters", () => {
-    expect(slugify("???")).toBe("model");
+    expect(slugify("???")).toBe("item");
   });
 
   it("truncates very long titles to a bounded length", () => {

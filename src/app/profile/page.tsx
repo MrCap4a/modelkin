@@ -6,6 +6,7 @@ import { listOwnedModels } from "@modules/downloads";
 import { listUserOrderHistory } from "@modules/orders";
 import { isAuthor } from "@modules/authors";
 import { formatPriceRub } from "@modules/models";
+import { logoutAction } from "@components/shared/logout-action";
 import { ProfileShell } from "./_components/profile-shell";
 import { AvatarUploader } from "./_components/avatar-uploader";
 import { ChangePasswordToggle } from "./_components/change-password-toggle";
@@ -47,6 +48,16 @@ export default async function ProfilePage() {
           <p className="mt-3 text-center text-sm text-ink-muted">{formatMemberSince(profile.createdAt)}</p>
           <div className="mt-5 border-t border-border pt-5">
             <ChangePasswordToggle />
+          </div>
+          <div className="mt-3">
+            <form action={logoutAction}>
+              <button
+                type="submit"
+                className="w-full rounded-control border border-border px-4 py-2.5 text-sm font-semibold text-ink-muted transition-colors hover:bg-surface-alt hover:text-danger"
+              >
+                Выйти из аккаунта
+              </button>
+            </form>
           </div>
         </div>
 

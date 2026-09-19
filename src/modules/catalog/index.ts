@@ -3,7 +3,7 @@
 // infrastructure/* directly.
 
 export { listCatalog } from "./application/list-catalog";
-export { getPopularModels } from "./application/get-popular-models";
+export { getRandomModels } from "./application/get-random-models";
 export { listCatalogTags } from "./application/list-catalog-tags";
 export { CATALOG_DEFAULT_PAGE_SIZE, CATALOG_SORTS } from "./domain/catalog";
 export type {

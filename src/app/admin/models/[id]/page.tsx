@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getModelForAdmin, type ModelAdminStatus } from "@modules/models";
+import { listTags } from "@modules/tags";
 import { PageHeader } from "../../_components/page-header";
 import { StatusBadge, type BadgeTone } from "../../_components/status-badge";
 import { ModelForm, type ModelFormInitialData } from "../_components/model-form";
@@ -22,7 +23,7 @@ const STATUS_TONE: Record<ModelAdminStatus, BadgeTone> = {
 
 export default async function EditModelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const model = await getModelForAdmin(id);
+  const [model, availableTags] = await Promise.all([getModelForAdmin(id), listTags()]);
 
   if (!model) {
     notFound();
@@ -53,7 +54,7 @@ export default async function EditModelPage({ params }: { params: Promise<{ id: 
         }
       />
       <div className="mt-6">
-        <ModelForm initial={initial} />
+        <ModelForm initial={initial} availableTags={availableTags} />
       </div>
     </div>
   );

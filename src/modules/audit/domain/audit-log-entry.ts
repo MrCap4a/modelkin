@@ -21,6 +21,9 @@ export type AuditEventName =
   | "user.role_changed"
   | "user.updated_by_admin"
   | "custom_order.status_changed"
+  | "tag.created"
+  | "tag.updated"
+  | "tag.deleted"
   // Commerce
   | "cart.item_added"
   | "cart.item_removed"

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CATALOG_TAGS } from "@shared/constants/catalog-tags";
+import Link from "next/link";
+import type { TagSummary } from "@modules/tags";
 import { modelAdminInputSchema } from "@modules/models/domain/model-admin-schema";
 import { clsx } from "@shared/utils/clsx";
 import {
@@ -45,12 +46,18 @@ function rublesInputToKopecks(value: string): number {
  * Single form used by both /admin/models/new and /admin/models/[id]. The
  * PDF ("Добавить 3D-модель") shows a single-select category dropdown and a
  * free-text tags input; our data model has models carrying MULTIPLE Tag
- * rows from a fixed catalog (@shared/constants/catalog-tags, seeded — not
- * admin-creatable), so this deliberately renders a multi-select tag picker
- * against that fixed set instead of free text — correctness over pixel
- * fidelity here (see the admin agent's task brief).
+ * rows, so this deliberately renders a multi-select tag picker instead of
+ * free text — correctness over pixel fidelity here. Categories themselves
+ * are admin-managed (@modules/tags, see /admin/tags) rather than a fixed
+ * hardcoded set — `availableTags` is fetched server-side by the page.
  */
-export function ModelForm({ initial }: { initial: ModelFormInitialData | null }) {
+export function ModelForm({
+  initial,
+  availableTags,
+}: {
+  initial: ModelFormInitialData | null;
+  availableTags: TagSummary[];
+}) {
   const router = useRouter();
   const isEdit = initial !== null;
 
@@ -192,24 +199,39 @@ export function ModelForm({ initial }: { initial: ModelFormInitialData | null })
 
         <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <span className="block text-sm font-medium text-ink">Категория</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {CATALOG_TAGS.map((tag) => (
-                <button
-                  key={tag.slug}
-                  type="button"
-                  onClick={() => toggleTag(tag.slug)}
-                  className={clsx(
-                    "rounded-control px-3 py-1.5 text-xs font-medium transition-colors",
-                    tagSlugs.includes(tag.slug)
-                      ? "bg-primary text-white"
-                      : "border border-border bg-surface-alt text-ink hover:border-primary",
-                  )}
-                >
-                  {tag.name}
-                </button>
-              ))}
+            <div className="flex items-center justify-between">
+              <span className="block text-sm font-medium text-ink">Категория</span>
+              <Link href="/admin/tags" className="text-xs font-medium text-primary hover:underline">
+                Управлять категориями
+              </Link>
             </div>
+            {availableTags.length === 0 ? (
+              <p className="mt-2 text-xs text-ink-muted">
+                Категорий пока нет — создайте их на странице{" "}
+                <Link href="/admin/tags" className="text-primary hover:underline">
+                  «Категории»
+                </Link>
+                .
+              </p>
+            ) : (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {availableTags.map((tag) => (
+                  <button
+                    key={tag.slug}
+                    type="button"
+                    onClick={() => toggleTag(tag.slug)}
+                    className={clsx(
+                      "rounded-control px-3 py-1.5 text-xs font-medium transition-colors",
+                      tagSlugs.includes(tag.slug)
+                        ? "bg-primary text-white"
+                        : "border border-border bg-surface-alt text-ink hover:border-primary",
+                    )}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            )}
             {fieldErrors.tagSlugs && <p className="mt-1.5 text-sm text-danger">{fieldErrors.tagSlugs}</p>}
           </div>
 

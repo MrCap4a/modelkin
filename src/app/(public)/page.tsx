@@ -1,10 +1,14 @@
 import Link from "next/link";
-import { getPopularModels } from "@modules/catalog";
+import { getRandomModels } from "@modules/catalog";
 import { ModelCard } from "./_components/model-card";
 import { SearchBar } from "./_components/search-bar";
 
+// Always render fresh on every request — a random sample should actually
+// change between visits, not get cached/prerendered once.
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
-  const popularModels = await getPopularModels(4);
+  const randomModels = await getRandomModels(4);
 
   return (
     <div>
@@ -52,20 +56,20 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Popular this week */}
+      {/* Random recommendations */}
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-ink">Популярно на этой неделе</h2>
+          <h2 className="text-2xl font-bold text-ink">Случайные рекомендации</h2>
           <Link href="/models" className="text-sm font-semibold text-primary hover:text-primary-hover">
             Смотреть все модели →
           </Link>
         </div>
 
-        {popularModels.length === 0 ? (
+        {randomModels.length === 0 ? (
           <p className="mt-8 text-ink-muted">Пока нет опубликованных моделей.</p>
         ) : (
           <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {popularModels.map((model) => (
+            {randomModels.map((model) => (
               <ModelCard key={model.id} model={model} />
             ))}
           </div>

@@ -1,7 +1,7 @@
 /**
- * Slug generation for admin-created models (ТЗ §29 — admin manages `slug`
- * indirectly by naming a model; we derive it rather than asking the admin to
- * type a URL-safe string by hand). Pure/no I/O — safe to unit test directly.
+ * Slug generation shared by any admin-named entity that needs a URL-safe
+ * slug derived from a (possibly Cyrillic) title — models (ТЗ §29) and tags.
+ * Pure/no I/O — safe to unit test directly.
  */
 
 const CYRILLIC_TO_LATIN: Record<string, string> = {
@@ -49,7 +49,7 @@ export function transliterate(input: string): string {
     .join("");
 }
 
-const FALLBACK_SLUG_BASE = "model";
+const FALLBACK_SLUG_BASE = "item";
 const MAX_SLUG_BASE_LENGTH = 80;
 
 /** Lowercase, hyphenated, URL-safe base slug from an arbitrary (possibly Cyrillic) title. */

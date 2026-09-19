@@ -1,8 +1,9 @@
 /**
- * Canonical catalog tags shown as filter pills (PDF catalog page) and in the
- * footer "Каталог" column. Single source of truth shared by the seed
- * script and any UI that needs to link to a pre-defined tag, so slugs never
- * drift between seed data and links built against it.
+ * Initial seed data only (used by prisma/seed.ts to bootstrap a fresh
+ * database with demo categories) — NOT the runtime source of truth.
+ * Categories are admin-managed at runtime via @modules/tags (see
+ * /admin/tags); the app reads them from the `Tag` table, never from this
+ * constant. Editing this file has no effect on an already-seeded database.
  */
 export const CATALOG_TAGS = [
   { slug: "organayzery", name: "Органайзеры" },

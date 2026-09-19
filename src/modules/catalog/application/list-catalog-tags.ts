@@ -1,9 +1,8 @@
-import { CATALOG_TAGS } from "@shared/constants/catalog-tags";
+import "server-only";
+import { listTags } from "@modules/tags";
 
-/**
- * Re-exports the single canonical tag list (also used by the seed script and
- * the footer) as the catalog filter pills — never invent a second tag list.
- */
-export function listCatalogTags(): { slug: string; name: string }[] {
-  return CATALOG_TAGS.map((tag) => ({ slug: tag.slug, name: tag.name }));
+/** Catalog filter pills — reads the admin-managed tag list, not a hardcoded constant. */
+export async function listCatalogTags(): Promise<{ slug: string; name: string }[]> {
+  const tags = await listTags();
+  return tags.map((tag) => ({ slug: tag.slug, name: tag.name }));
 }

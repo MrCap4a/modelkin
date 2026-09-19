@@ -45,6 +45,24 @@ async function findSearchMatchedModelIds(query: string): Promise<string[]> {
   return rows.map((row) => row.id);
 }
 
+type ModelRowForCard = Prisma.ModelGetPayload<{
+  include: {
+    images: true;
+    tags: { include: { tag: true } };
+  };
+}>;
+
+function toCatalogModelCard(row: ModelRowForCard): CatalogModelCard {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    price: row.price,
+    imageUrl: row.images[0] ? getPublicObjectUrl(row.images[0].storageKey) : null,
+    tag: row.tags[0] ? { slug: row.tags[0].tag.slug, name: row.tags[0].tag.name } : null,
+  };
+}
+
 export async function listCatalogModels(
   params: RepoListParams,
 ): Promise<{ items: CatalogModelCard[]; total: number }> {
@@ -82,14 +100,30 @@ export async function listCatalogModels(
     }),
   ]);
 
-  const items: CatalogModelCard[] = rows.map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    title: row.title,
-    price: row.price,
-    imageUrl: row.images[0] ? getPublicObjectUrl(row.images[0].storageKey) : null,
-    tag: row.tags[0] ? { slug: row.tags[0].tag.slug, name: row.tags[0].tag.name } : null,
-  }));
+  return { items: rows.map(toCatalogModelCard), total };
+}
 
-  return { items, total };
+/** Homepage "Случайные рекомендации" — a fresh random sample of published models on every load. */
+export async function listRandomCatalogModels(limit: number): Promise<CatalogModelCard[]> {
+  const idRows = await prisma.$queryRaw<{ id: string }[]>`
+    SELECT id FROM "Model" WHERE status = 'PUBLISHED' ORDER BY random() LIMIT ${limit}
+  `;
+  const ids = idRows.map((row) => row.id);
+  if (ids.length === 0) return [];
+
+  const rows = await prisma.model.findMany({
+    where: { id: { in: ids } },
+    include: {
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
+      tags: { include: { tag: true }, take: 1 },
+    },
+  });
+
+  // findMany doesn't preserve the `in` array's order — re-sort to match the
+  // random order the raw query already picked.
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((row): row is (typeof rows)[number] => row !== undefined)
+    .map(toCatalogModelCard);
 }

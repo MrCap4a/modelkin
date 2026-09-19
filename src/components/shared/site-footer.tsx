@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { CATALOG_TAGS } from "@shared/constants/catalog-tags";
 import { Logo } from "./logo";
 
 export function SiteFooter() {
@@ -8,31 +7,12 @@ export function SiteFooter() {
   return (
     <footer className="border-t border-border bg-surface-alt">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-3">
           <div>
             <Logo />
             <p className="mt-4 max-w-xs text-sm text-ink-muted">
-              Маркетплейс качественных, оптимизированных и проверенных 3D-моделей для домашней и
-              промышленной FDM/SLA печати.
+              Маркетплейс качественных, оптимизированных и проверенных 3D-моделей.
             </p>
-          </div>
-
-          <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-ink-muted">
-              Каталог
-            </h3>
-            <ul className="mt-4 space-y-2.5 text-sm">
-              {CATALOG_TAGS.slice(0, 3).map((tag) => (
-                <li key={tag.slug}>
-                  <Link
-                    href={`/models?tag=${tag.slug}`}
-                    className="text-ink hover:text-primary"
-                  >
-                    {tag.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
 
           <div>
@@ -46,10 +26,9 @@ export function SiteFooter() {
                 </Link>
               </li>
               <li>
-                <span className="text-ink-muted">Для авторов моделей</span>
-              </li>
-              <li>
-                <span className="text-ink-muted">Помощь печатникам</span>
+                <Link href="/for-authors" className="text-ink hover:text-primary">
+                  Для авторов моделей
+                </Link>
               </li>
             </ul>
           </div>
@@ -64,7 +43,17 @@ export function SiteFooter() {
                   support@modelkin.ru
                 </a>
               </li>
-              <li className="text-ink-muted">Telegram: @modelkin_support</li>
+              <li>
+                <a
+                  href="https://t.me/modelkin_support"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-ink hover:text-primary"
+                >
+                  Telegram: @modelkin_support
+                </a>
+              </li>
+              <li className="text-ink-muted">ИП, ИНН 234504683260</li>
             </ul>
           </div>
         </div>

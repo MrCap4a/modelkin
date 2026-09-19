@@ -3,6 +3,7 @@ import { getCurrentUser } from "@modules/auth";
 import { Logo } from "./logo";
 import { NavLinks } from "./nav-links";
 import { CartBadge } from "./cart-badge";
+import { LogoutButton } from "./logout-button";
 
 function UserIcon() {
   return (
@@ -56,20 +57,23 @@ export async function SiteHeader() {
           </Link>
 
           {user ? (
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 text-sm font-medium text-ink transition-colors hover:text-primary"
-            >
-              <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-surface-alt text-ink-muted">
-                {user.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- avatar source is an S3 signed/public URL, not a local asset
-                  <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <UserIcon />
-                )}
-              </span>
-              <span className="hidden sm:inline">{user.name ?? user.email}</span>
-            </Link>
+            <>
+              <Link
+                href="/profile"
+                className="flex items-center gap-2 text-sm font-medium text-ink transition-colors hover:text-primary"
+              >
+                <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-surface-alt text-ink-muted">
+                  {user.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- avatar source is an S3 signed/public URL, not a local asset
+                    <img src={user.avatarUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <UserIcon />
+                  )}
+                </span>
+                <span className="hidden sm:inline">{user.name ?? user.email}</span>
+              </Link>
+              <LogoutButton />
+            </>
           ) : (
             <Link
               href="/login"
