@@ -9,7 +9,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { getConfig } from "@shared/config";
 import { StorageError } from "@shared/errors";
-import { getS3Client } from "./s3-client";
+import { getPublicS3Client, getS3Client } from "./s3-client";
 
 export type StoragePrefix = keyof ReturnType<typeof getConfig>["storage"]["storagePrefixes"];
 
@@ -76,7 +76,7 @@ export async function createPresignedUploadUrl(params: {
   contentLength: number;
 }): Promise<{ url: string; expiresInSeconds: number }> {
   try {
-    const client = getS3Client();
+    const client = getPublicS3Client();
     const command = new PutObjectCommand({
       Bucket: getConfig().storage.bucket,
       Key: params.key,
@@ -97,7 +97,7 @@ export async function createPresignedDownloadUrl(params: {
   downloadFileName?: string;
 }): Promise<{ url: string; expiresInSeconds: number }> {
   try {
-    const client = getS3Client();
+    const client = getPublicS3Client();
     const command = new GetObjectCommand({
       Bucket: getConfig().storage.bucket,
       Key: params.key,
