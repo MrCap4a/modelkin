@@ -16,17 +16,13 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 sm:pt-14">
         <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
           <div>
-            <span className="inline-block rounded-full bg-primary-subtle px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              Новый стандарт 3D-маркетплейса
-            </span>
-
-            <h1 className="mt-5 text-4xl font-bold leading-tight text-ink sm:text-5xl">
+            <h1 className="text-4xl font-bold leading-tight text-ink sm:text-5xl">
               Точные 3D-модели для идеальной печати
             </h1>
 
             <p className="mt-4 max-w-xl text-ink-muted">
-              Забудьте о неудачных слоях и кривых сетках. Скачивайте оптимизированные STL-модели
-              органайзеров, декора и деталей, разработанные профессиональными инженерами.
+              STL-модели органайзеров, декора и полезных мелочей — каждую мы печатаем сами перед
+              публикацией, чтобы файл был готов к слайсингу без доработок.
             </p>
 
             <div className="mt-6">
