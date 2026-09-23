@@ -127,3 +127,64 @@ export async function listRandomCatalogModels(limit: number): Promise<CatalogMod
     .filter((row): row is (typeof rows)[number] => row !== undefined)
     .map(toCatalogModelCard);
 }
+
+/**
+ * Model detail page "Похожие модели" (SEO audit, 2026-09-21) — other
+ * PUBLISHED models sharing at least one tag with `excludeModelId`, for
+ * internal linking between genuinely related pages rather than random
+ * ones. Falls back to a random sample when the model has no tags or no
+ * other model shares one, so the section is never empty without reason.
+ */
+export async function listRelatedCatalogModels(
+  excludeModelId: string,
+  tagSlugs: string[],
+  limit: number,
+): Promise<CatalogModelCard[]> {
+  let ids: string[] = [];
+
+  if (tagSlugs.length > 0) {
+    // random() can't appear in ORDER BY alongside SELECT DISTINCT unless
+    // it's itself in the select list — order the distinct id set in a
+    // subquery instead.
+    const idRows = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM (
+        SELECT DISTINCT m.id
+        FROM "Model" m
+        JOIN "ModelTag" mt ON mt."modelId" = m.id
+        JOIN "Tag" t ON t.id = mt."tagId"
+        WHERE m.status = 'PUBLISHED'
+          AND m.id != ${excludeModelId}
+          AND t.slug = ANY(${tagSlugs})
+      ) matched
+      ORDER BY random()
+      LIMIT ${limit}
+    `;
+    ids = idRows.map((row) => row.id);
+  }
+
+  if (ids.length < limit) {
+    const fallbackRows = await prisma.$queryRaw<{ id: string }[]>`
+      SELECT id FROM "Model"
+      WHERE status = 'PUBLISHED' AND id != ${excludeModelId} AND id != ALL(${ids})
+      ORDER BY random()
+      LIMIT ${limit - ids.length}
+    `;
+    ids = [...ids, ...fallbackRows.map((row) => row.id)];
+  }
+
+  if (ids.length === 0) return [];
+
+  const rows = await prisma.model.findMany({
+    where: { id: { in: ids } },
+    include: {
+      images: { orderBy: { sortOrder: "asc" }, take: 1 },
+      tags: { include: { tag: true }, take: 1 },
+    },
+  });
+
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids
+    .map((id) => byId.get(id))
+    .filter((row): row is (typeof rows)[number] => row !== undefined)
+    .map(toCatalogModelCard);
+}

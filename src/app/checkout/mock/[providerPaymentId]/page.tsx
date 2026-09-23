@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireUser } from "@modules/auth";
 import { AuthenticationError } from "@shared/errors";
 import { MockPaymentPanel } from "./mock-payment-panel";
+
+// Per-payment, per-user, never a page anyone should find via search (SEO
+// audit, 2026-09-21).
+export const metadata: Metadata = { title: "Оплата", robots: { index: false, follow: false } };
 
 /**
  * Mock payment gateway redirect target (ТЗ §24) — where
@@ -29,8 +34,8 @@ export default async function MockCheckoutPage({
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-6 px-4 text-center sm:px-6">
       <h1 className="text-2xl font-bold text-ink">Тестовая оплата</h1>
       <p className="text-ink-muted">
-        Это страница mock-платёжного шлюза — в production её заменит реальный
-        платёжный провайдер. Нажмите «Оплатить», чтобы подтвердить оплату заказа.
+        Это страница mock-платёжного шлюза — в production её заменит реальный платёжный провайдер.
+        Нажмите «Оплатить», чтобы подтвердить оплату заказа.
       </p>
       <MockPaymentPanel providerPaymentId={providerPaymentId} />
     </div>

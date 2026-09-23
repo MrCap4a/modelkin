@@ -114,6 +114,8 @@ erDiagram
 | `AuditLog` | Аудит критических действий (ТЗ §30), дублирует файловый audit.log в БД для админ-экрана `/admin/audit` |
 | `RateLimitBucket` | Собственный rate limiter (ТЗ §44, §67 — без внешней очереди) |
 | `Job` | Абстракция background jobs (ТЗ §67) |
+| `Model.seoTitle` / `.seoDescription` / `.noindex` | Ручной SEO-override на странице модели — nullable, пусто = автоматическое значение (SEO-аудит, см. ARCHITECTURE.md) |
+| `Tag.seoIndexed` / `.seoTitle` / `.seoH1` / `.seoDescription` | Опциональная индексируемая страница `/tag/{slug}` для отдельного тега — выключено по умолчанию у всех тегов (SEO-аудит, см. ARCHITECTURE.md) |
 
 ## Деньги
 

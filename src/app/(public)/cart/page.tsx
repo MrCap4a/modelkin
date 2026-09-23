@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getCurrentUser } from "@modules/auth";
 import { getCart, type CartItemView } from "@modules/cart";
 import { removeFromCartAction, checkoutAction } from "./actions";
+
+// Per-user, ever-changing cart contents — no SEO value, and indexing it
+// would just be a low-quality duplicate of the catalog (SEO audit, 2026-09-21).
+export const metadata: Metadata = { title: "Корзина", robots: { index: false, follow: true } };
 
 function formatPrice(amountKopecks: number): string {
   return `${Math.round(amountKopecks / 100).toLocaleString("ru-RU")} ₽`;

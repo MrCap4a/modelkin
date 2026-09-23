@@ -76,7 +76,11 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
     expect(model.tags.map((t) => t.slug)).toContain(tagSlug);
     expect(model.author?.email).toBe(authorEmail);
 
-    const audit = await listAuditLogs({ event: "model.created", entityType: "Model", entityId: model.id });
+    const audit = await listAuditLogs({
+      event: "model.created",
+      entityType: "Model",
+      entityId: model.id,
+    });
     expect(audit.items.length).toBeGreaterThanOrEqual(1);
     expect(audit.items[0]?.actorUserId).toBe(adminId);
     expect(audit.items[0]?.actorRole).toBe("ADMIN");
@@ -87,11 +91,21 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
     const fixedTitle = "Повторяющееся название модели";
 
     const first = await createModel(
-      { title: fixedTitle, description: "Первая модель с этим названием", price: 10_000, tagSlugs: [] },
+      {
+        title: fixedTitle,
+        description: "Первая модель с этим названием",
+        price: 10_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     const second = await createModel(
-      { title: fixedTitle, description: "Вторая модель с этим названием", price: 10_000, tagSlugs: [] },
+      {
+        title: fixedTitle,
+        description: "Вторая модель с этим названием",
+        price: 10_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(first.id, second.id);
@@ -118,23 +132,42 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
 
   it("rejects publishing a model with no preview image and no STL file", async () => {
     const model = await createModel(
-      { title: unique("Модель без файлов"), description: "Ещё нет файлов", price: 12_000, tagSlugs: [] },
+      {
+        title: unique("Модель без файлов"),
+        description: "Ещё нет файлов",
+        price: 12_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);
 
-    await expect(publishModel(model.id, adminId)).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(publishModel(model.id, adminId)).rejects.toMatchObject({
+      code: "VALIDATION_ERROR",
+    });
   });
 
   it("publishes once an image and a file are attached, and audit-logs model.published", async () => {
     const model = await createModel(
-      { title: unique("Модель готовая к публикации"), description: "Полностью готова", price: 22_000, tagSlugs: [] },
+      {
+        title: unique("Модель готовая к публикации"),
+        description: "Полностью готова",
+        price: 22_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);
 
     await addModelImage(model.id, `previews/${unique("key")}.jpg`, adminId);
-    await addModelFile(model.id, `models/${unique("key")}.stl`, "part.stl", "application/octet-stream", 4096, adminId);
+    await addModelFile(
+      model.id,
+      `models/${unique("key")}.stl`,
+      "part.stl",
+      "application/octet-stream",
+      4096,
+      adminId,
+    );
 
     const published = await publishModel(model.id, adminId);
     expect(published.status).toBe("PUBLISHED");
@@ -142,37 +175,67 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
     expect(published.images).toHaveLength(1);
     expect(published.files).toHaveLength(1);
 
-    const audit = await listAuditLogs({ event: "model.published", entityType: "Model", entityId: model.id });
+    const audit = await listAuditLogs({
+      event: "model.published",
+      entityType: "Model",
+      entityId: model.id,
+    });
     expect(audit.items.length).toBeGreaterThanOrEqual(1);
   });
 
   it("hides a published model and audit-logs model.hidden", async () => {
     const model = await createModel(
-      { title: unique("Модель для скрытия"), description: "Будет скрыта", price: 18_000, tagSlugs: [] },
+      {
+        title: unique("Модель для скрытия"),
+        description: "Будет скрыта",
+        price: 18_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);
     await addModelImage(model.id, `previews/${unique("key")}.jpg`, adminId);
-    await addModelFile(model.id, `models/${unique("key")}.stl`, "part.stl", "application/octet-stream", 2048, adminId);
+    await addModelFile(
+      model.id,
+      `models/${unique("key")}.stl`,
+      "part.stl",
+      "application/octet-stream",
+      2048,
+      adminId,
+    );
     await publishModel(model.id, adminId);
 
     const hidden = await hideModel(model.id, adminId);
     expect(hidden.status).toBe("HIDDEN");
 
-    const audit = await listAuditLogs({ event: "model.hidden", entityType: "Model", entityId: model.id });
+    const audit = await listAuditLogs({
+      event: "model.hidden",
+      entityType: "Model",
+      entityId: model.id,
+    });
     expect(audit.items.length).toBeGreaterThanOrEqual(1);
   });
 
   it("updates title/description/price/tags and audit-logs model.updated", async () => {
     const model = await createModel(
-      { title: unique("Модель до правок"), description: "Старое описание", price: 5_000, tagSlugs: [] },
+      {
+        title: unique("Модель до правок"),
+        description: "Старое описание",
+        price: 5_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);
 
     const updated = await updateModel(
       model.id,
-      { title: "Новое название", description: "Новое описание модели подробнее", price: 7_500, tagSlugs: [tagSlug] },
+      {
+        title: "Новое название",
+        description: "Новое описание модели подробнее",
+        price: 7_500,
+        tagSlugs: [tagSlug],
+      },
       adminId,
     );
 
@@ -183,13 +246,22 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
     // Slug must NOT change on a title edit — it's the model's public URL.
     expect(updated.slug).toBe(model.slug);
 
-    const audit = await listAuditLogs({ event: "model.updated", entityType: "Model", entityId: model.id });
+    const audit = await listAuditLogs({
+      event: "model.updated",
+      entityType: "Model",
+      entityId: model.id,
+    });
     expect(audit.items.length).toBeGreaterThanOrEqual(1);
   });
 
   it("rejects updateModel when the new authorEmail doesn't belong to a registered user", async () => {
     const model = await createModel(
-      { title: unique("Модель для проверки автора"), description: "Описание модели", price: 9_000, tagSlugs: [] },
+      {
+        title: unique("Модель для проверки автора"),
+        description: "Описание модели",
+        price: 9_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);
@@ -217,9 +289,80 @@ describe("models admin CRUD flow (integration, ТЗ §29/§30)", () => {
     expect(updated.author).toBeNull();
   });
 
+  it("defaults SEO overrides to unset (noindex false, titles/descriptions null) and accepts explicit overrides on create (SEO audit, 2026-09-21)", async () => {
+    const withoutOverrides = await createModel(
+      {
+        title: unique("Модель без SEO override"),
+        description: "Обычное описание",
+        price: 6_000,
+        tagSlugs: [],
+      },
+      adminId,
+    );
+    createdModelIds.push(withoutOverrides.id);
+    expect(withoutOverrides.seoTitle).toBeNull();
+    expect(withoutOverrides.seoDescription).toBeNull();
+    expect(withoutOverrides.noindex).toBe(false);
+
+    const withOverrides = await createModel(
+      {
+        title: unique("Модель с SEO override"),
+        description: "Обычное описание",
+        price: 6_000,
+        tagSlugs: [],
+        seoTitle: "Кастомный SEO-заголовок",
+        seoDescription: "Кастомное SEO-описание",
+        noindex: true,
+      },
+      adminId,
+    );
+    createdModelIds.push(withOverrides.id);
+    expect(withOverrides.seoTitle).toBe("Кастомный SEO-заголовок");
+    expect(withOverrides.seoDescription).toBe("Кастомное SEO-описание");
+    expect(withOverrides.noindex).toBe(true);
+  });
+
+  it("updates SEO overrides independently of other fields, and an empty string clears back to automatic", async () => {
+    const model = await createModel(
+      {
+        title: unique("Модель для SEO-правок"),
+        description: "Описание",
+        price: 6_000,
+        tagSlugs: [],
+      },
+      adminId,
+    );
+    createdModelIds.push(model.id);
+
+    const withSeo = await updateModel(
+      model.id,
+      { seoTitle: "Ручной заголовок", seoDescription: "Ручное описание", noindex: true },
+      adminId,
+    );
+    expect(withSeo.seoTitle).toBe("Ручной заголовок");
+    expect(withSeo.seoDescription).toBe("Ручное описание");
+    expect(withSeo.noindex).toBe(true);
+    // Untouched by the SEO update — proves it doesn't clobber other fields.
+    expect(withSeo.title).toBe(model.title);
+
+    const cleared = await updateModel(
+      model.id,
+      { seoTitle: "", seoDescription: "", noindex: false },
+      adminId,
+    );
+    expect(cleared.seoTitle).toBeNull();
+    expect(cleared.seoDescription).toBeNull();
+    expect(cleared.noindex).toBe(false);
+  });
+
   it("getModelForAdmin returns full detail including DRAFT models (unlike the public read side)", async () => {
     const model = await createModel(
-      { title: unique("Черновик для админки"), description: "Только для админа", price: 4_000, tagSlugs: [] },
+      {
+        title: unique("Черновик для админки"),
+        description: "Только для админа",
+        price: 4_000,
+        tagSlugs: [],
+      },
       adminId,
     );
     createdModelIds.push(model.id);

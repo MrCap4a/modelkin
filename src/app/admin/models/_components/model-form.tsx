@@ -27,9 +27,17 @@ export interface ModelFormInitialData {
   imageUrl: string | null;
   file: { originalName: string; size: number } | null;
   status: "DRAFT" | "PUBLISHED" | "HIDDEN";
+  seoTitle: string;
+  seoDescription: string;
+  noindex: boolean;
 }
 
-type FieldErrors = Partial<Record<"title" | "description" | "price" | "tagSlugs" | "authorEmail", string>>;
+type FieldErrors = Partial<
+  Record<
+    "title" | "description" | "price" | "tagSlugs" | "authorEmail" | "seoTitle" | "seoDescription",
+    string
+  >
+>;
 
 function kopecksToRublesInput(kopecks: number): string {
   return (kopecks / 100).toString();
@@ -66,6 +74,9 @@ export function ModelForm({
   const [priceInput, setPriceInput] = useState(initial ? kopecksToRublesInput(initial.price) : "");
   const [tagSlugs, setTagSlugs] = useState<string[]>(initial?.tagSlugs ?? []);
   const [authorEmail, setAuthorEmail] = useState(initial?.authorEmail ?? "");
+  const [seoTitle, setSeoTitle] = useState(initial?.seoTitle ?? "");
+  const [seoDescription, setSeoDescription] = useState(initial?.seoDescription ?? "");
+  const [noindex, setNoindex] = useState(initial?.noindex ?? false);
 
   const [stagedImageStorageKey, setStagedImageStorageKey] = useState<string | null>(null);
   const [stagedFile, setStagedFile] = useState<StagedStlFile | null>(null);
@@ -87,7 +98,13 @@ export function ModelForm({
       await addModelImageAction(modelId, stagedImageStorageKey);
     }
     if (stagedFile) {
-      await addModelFileAction(modelId, stagedFile.storageKey, stagedFile.originalName, stagedFile.mimeType, stagedFile.size);
+      await addModelFileAction(
+        modelId,
+        stagedFile.storageKey,
+        stagedFile.originalName,
+        stagedFile.mimeType,
+        stagedFile.size,
+      );
     }
   }
 
@@ -101,6 +118,9 @@ export function ModelForm({
       price,
       tagSlugs,
       authorEmail: authorEmail.trim() || undefined,
+      seoTitle,
+      seoDescription,
+      noindex,
     };
 
     const parsed = modelAdminInputSchema.safeParse(candidate);
@@ -232,7 +252,9 @@ export function ModelForm({
                 ))}
               </div>
             )}
-            {fieldErrors.tagSlugs && <p className="mt-1.5 text-sm text-danger">{fieldErrors.tagSlugs}</p>}
+            {fieldErrors.tagSlugs && (
+              <p className="mt-1.5 text-sm text-danger">{fieldErrors.tagSlugs}</p>
+            )}
           </div>
 
           <div>
@@ -265,12 +287,63 @@ export function ModelForm({
             className="mt-2 w-full rounded-control border border-border bg-background px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <p className="mt-1.5 text-xs text-ink-muted">
-            Должен быть email уже зарегистрированного пользователя — он получит долю с продаж этой модели.
+            Должен быть email уже зарегистрированного пользователя — он получит долю с продаж этой
+            модели.
           </p>
           {fieldErrors.authorEmail && (
             <p className="mt-1.5 text-sm text-danger">{fieldErrors.authorEmail}</p>
           )}
         </div>
+      </div>
+
+      <div className="rounded-card border border-border bg-surface p-6 shadow-card lg:col-span-2">
+        <h2 className="text-sm font-bold text-ink">SEO (необязательно)</h2>
+        <p className="mt-1 text-xs text-ink-muted">
+          Оставьте пустым — заголовок и описание для поисковиков сформируются автоматически из
+          названия и описания модели.
+        </p>
+
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="seoTitle" className="block text-sm font-medium text-ink">
+              SEO title
+            </label>
+            <input
+              id="seoTitle"
+              type="text"
+              value={seoTitle}
+              onChange={(e) => setSeoTitle(e.target.value)}
+              placeholder={`${title || "Название модели"} — STL-модель для 3D-печати | Моделкин`}
+              className="mt-2 w-full rounded-control border border-border bg-background px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {fieldErrors.seoTitle && (
+              <p className="mt-1.5 text-sm text-danger">{fieldErrors.seoTitle}</p>
+            )}
+          </div>
+
+          <div>
+            <label htmlFor="seoDescription" className="block text-sm font-medium text-ink">
+              SEO description
+            </label>
+            <input
+              id="seoDescription"
+              type="text"
+              value={seoDescription}
+              onChange={(e) => setSeoDescription(e.target.value)}
+              placeholder="Автоматически из описания модели"
+              className="mt-2 w-full rounded-control border border-border bg-background px-3.5 py-2.5 text-sm text-ink placeholder:text-ink-muted focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+            {fieldErrors.seoDescription && (
+              <p className="mt-1.5 text-sm text-danger">{fieldErrors.seoDescription}</p>
+            )}
+          </div>
+        </div>
+
+        <label className="mt-4 flex items-center gap-2 text-sm text-ink">
+          <input type="checkbox" checked={noindex} onChange={(e) => setNoindex(e.target.checked)} />
+          Не индексировать эту модель (noindex) — страница останется доступной по ссылке, но не
+          будет предлагаться в поиске
+        </label>
       </div>
 
       <div className="flex flex-col gap-6">
@@ -286,7 +359,9 @@ export function ModelForm({
         />
 
         {formError && (
-          <p className="rounded-control bg-danger-bg px-3.5 py-2.5 text-sm text-danger">{formError}</p>
+          <p className="rounded-control bg-danger-bg px-3.5 py-2.5 text-sm text-danger">
+            {formError}
+          </p>
         )}
 
         <div className="flex gap-3">

@@ -89,6 +89,20 @@ model Model {
   updatedAt   DateTime    @updatedAt
   publishedAt DateTime?
 
+  // Manual SEO overrides (SEO audit, 2026-09-21) — all nullable, all
+  // optional. When unset, the public model page derives title/description
+  // from `title`/`description` automatically (see generateMetadata in
+  // src/app/(public)/models/[slug]/page.tsx) — these only exist for the
+  // rare case an admin needs to hand-tune a specific listing's snippet.
+  // No separate canonical/H1/OG override fields: canonical is always the
+  // model's own /models/{slug} URL, H1 is always `title`, OG reuses
+  // seoTitle/seoDescription — duplicating those would just be more fields
+  // that can drift out of sync for no benefit.
+  seoTitle       String?
+  seoDescription String?
+  // Excludes this one model from search indexing without unpublishing it.
+  noindex        Boolean @default(false)
+
   // Generated tsvector column (russian full-text search), added via raw SQL
   // in a follow-up migration. Declared here so `prisma db pull` stays accurate.
   // Not selectable through Prisma Client.
@@ -110,6 +124,20 @@ model Tag {
   id   String @id @default(cuid())
   name String
   slug String @unique
+
+  // Tags stay a lightweight, unrestricted classification/filter system by
+  // default (SEO audit, 2026-09-21) — most tags are NOT indexable pages,
+  // only /models?tag=<slug> filter values. `seoIndexed` is an explicit,
+  // per-tag admin opt-in that turns on the public /tag/{slug} landing page
+  // for genuinely valuable tags, instead of auto-generating one indexable
+  // page per tag (which would spam the index with low-value pages like a
+  // color or a one-off descriptor). seoTitle/seoH1/seoDescription are only
+  // ever read when seoIndexed is true; canonical is always /tag/{slug}
+  // (same reasoning as Model — no separate override field for it).
+  seoIndexed     Boolean @default(false)
+  seoTitle       String?
+  seoH1          String?
+  seoDescription String?
 
   models ModelTag[]
 }

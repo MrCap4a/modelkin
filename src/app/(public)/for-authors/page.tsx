@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Для авторов моделей" };
+export const metadata: Metadata = {
+  title: "Для авторов моделей",
+  description:
+    "Как разместить свою 3D-модель на Моделкин.рф: что подготовить перед публикацией и как договориться об условиях размещения.",
+  alternates: { canonical: "/for-authors" },
+};
 
 const STEPS = [
   {

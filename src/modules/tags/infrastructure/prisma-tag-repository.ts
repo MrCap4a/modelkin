@@ -1,5 +1,5 @@
 import { prisma } from "@infrastructure/database";
-import type { TagAdminSummary, TagSummary } from "../domain/tag";
+import type { SeoTagPage, TagAdminSummary, TagSeoDetail, TagSummary } from "../domain/tag";
 
 export async function listTagsPublic(): Promise<TagSummary[]> {
   return prisma.tag.findMany({
@@ -10,7 +10,16 @@ export async function listTagsPublic(): Promise<TagSummary[]> {
 
 export async function listTagsForAdmin(): Promise<TagAdminSummary[]> {
   const tags = await prisma.tag.findMany({
-    select: { id: true, slug: true, name: true, _count: { select: { models: true } } },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      seoIndexed: true,
+      seoTitle: true,
+      seoH1: true,
+      seoDescription: true,
+      _count: { select: { models: true } },
+    },
     orderBy: { name: "asc" },
   });
   return tags.map((tag) => ({
@@ -18,7 +27,53 @@ export async function listTagsForAdmin(): Promise<TagAdminSummary[]> {
     slug: tag.slug,
     name: tag.name,
     modelCount: tag._count.models,
+    seoIndexed: tag.seoIndexed,
+    seoTitle: tag.seoTitle,
+    seoH1: tag.seoH1,
+    seoDescription: tag.seoDescription,
   }));
+}
+
+export async function updateTagSeoRow(
+  id: string,
+  data: {
+    seoIndexed: boolean;
+    seoTitle: string | null;
+    seoH1: string | null;
+    seoDescription: string | null;
+  },
+): Promise<TagSeoDetail | null> {
+  try {
+    return await prisma.tag.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        seoIndexed: true,
+        seoTitle: true,
+        seoH1: true,
+        seoDescription: true,
+      },
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** Public /tag/{slug} route — only ever returns a tag that opted into SEO indexing. */
+export async function findSeoTagPageBySlug(slug: string): Promise<SeoTagPage | null> {
+  const tag = await prisma.tag.findFirst({
+    where: { slug, seoIndexed: true },
+    select: { slug: true, name: true, seoTitle: true, seoH1: true, seoDescription: true },
+  });
+  return tag;
+}
+
+/** Sitemap — every tag with SEO indexing turned on. */
+export async function listSeoIndexedTagSlugs(): Promise<{ slug: string }[]> {
+  return prisma.tag.findMany({ where: { seoIndexed: true }, select: { slug: true } });
 }
 
 export async function tagSlugExists(slug: string): Promise<boolean> {

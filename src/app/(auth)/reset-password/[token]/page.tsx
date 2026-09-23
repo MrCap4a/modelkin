@@ -4,7 +4,13 @@ import { getPasswordResetTokenPreview } from "@modules/auth";
 import { AuthCard } from "../../_components/auth-card";
 import { ResetPasswordForm } from "./reset-password-form";
 
-export const metadata: Metadata = { title: "Изменение пароля" };
+// This URL contains a one-time secret token — never index or crawl-follow
+// from it (SEO audit, 2026-09-21): an indexed/cached reset link would leak
+// account-takeover tokens through search results.
+export const metadata: Metadata = {
+  title: "Изменение пароля",
+  robots: { index: false, follow: false },
+};
 
 export default async function ResetPasswordPage({
   params,

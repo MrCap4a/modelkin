@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { modelAdminInputSchema, modelAdminUpdateSchema } from "@modules/models/domain/model-admin-schema";
+import {
+  modelAdminInputSchema,
+  modelAdminUpdateSchema,
+} from "@modules/models/domain/model-admin-schema";
 
 const base = {
   title: "Кронштейн для наушников",
@@ -29,7 +32,9 @@ describe("modelAdminInputSchema", () => {
   });
 
   it("rejects a description shorter than 10 characters", () => {
-    expect(modelAdminInputSchema.safeParse({ ...base, description: "Коротко" }).success).toBe(false);
+    expect(modelAdminInputSchema.safeParse({ ...base, description: "Коротко" }).success).toBe(
+      false,
+    );
   });
 
   it("rejects a non-integer price", () => {
@@ -71,13 +76,39 @@ describe("modelAdminInputSchema", () => {
   });
 
   it("rejects a malformed authorEmail", () => {
-    expect(modelAdminInputSchema.safeParse({ ...base, authorEmail: "not-an-email" }).success).toBe(false);
+    expect(modelAdminInputSchema.safeParse({ ...base, authorEmail: "not-an-email" }).success).toBe(
+      false,
+    );
   });
 
   it("accepts a well-formed authorEmail", () => {
-    expect(modelAdminInputSchema.safeParse({ ...base, authorEmail: "author@example.com" }).success).toBe(
-      true,
-    );
+    expect(
+      modelAdminInputSchema.safeParse({ ...base, authorEmail: "author@example.com" }).success,
+    ).toBe(true);
+  });
+
+  it("accepts a valid input without any SEO override fields (all optional)", () => {
+    expect(modelAdminInputSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("accepts empty-string SEO overrides (means 'clear back to automatic')", () => {
+    const result = modelAdminInputSchema.safeParse({ ...base, seoTitle: "", seoDescription: "" });
+    expect(result.success).toBe(true);
+  });
+
+  it("rejects a seoTitle longer than 90 characters", () => {
+    const result = modelAdminInputSchema.safeParse({ ...base, seoTitle: "x".repeat(91) });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a seoDescription longer than 200 characters", () => {
+    const result = modelAdminInputSchema.safeParse({ ...base, seoDescription: "x".repeat(201) });
+    expect(result.success).toBe(false);
+  });
+
+  it("accepts noindex as a plain boolean", () => {
+    expect(modelAdminInputSchema.safeParse({ ...base, noindex: true }).success).toBe(true);
+    expect(modelAdminInputSchema.safeParse({ ...base, noindex: false }).success).toBe(true);
   });
 });
 

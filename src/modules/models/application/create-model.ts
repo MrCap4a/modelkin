@@ -4,7 +4,11 @@ import { recordAuditEvent } from "@modules/audit";
 import { NotFoundError, ValidationError } from "@shared/errors";
 import { generateUniqueSlug } from "@shared/utils/slugify";
 import type { ModelAdminDetail } from "../domain/model-admin";
-import { findTagIdsBySlugs, findUserIdByEmail, modelSlugExists } from "../infrastructure/admin-model-repository";
+import {
+  findTagIdsBySlugs,
+  findUserIdByEmail,
+  modelSlugExists,
+} from "../infrastructure/admin-model-repository";
 import { getModelForAdmin } from "./get-model-for-admin";
 
 export interface CreateModelInput {
@@ -20,6 +24,10 @@ export interface CreateModelInput {
    * decision rather than a free-text "author name" field).
    */
   authorEmail?: string;
+  /** Manual SEO overrides — empty string is treated as "not set". */
+  seoTitle?: string;
+  seoDescription?: string;
+  noindex?: boolean;
 }
 
 function assertValidCoreFields(title: string, description: string, price: number): void {
@@ -39,7 +47,10 @@ function assertValidCoreFields(title: string, description: string, price: number
  * explicit step (see publish-model.ts) so a half-finished listing never
  * becomes visible in the public catalog by accident.
  */
-export async function createModel(input: CreateModelInput, actorId: string): Promise<ModelAdminDetail> {
+export async function createModel(
+  input: CreateModelInput,
+  actorId: string,
+): Promise<ModelAdminDetail> {
   const title = input.title.trim();
   const description = input.description.trim();
   assertValidCoreFields(title, description, input.price);
@@ -69,6 +80,9 @@ export async function createModel(input: CreateModelInput, actorId: string): Pro
       status: "DRAFT",
       authorId,
       tags: { create: tags.map((tag) => ({ tagId: tag.id })) },
+      seoTitle: input.seoTitle?.trim() || null,
+      seoDescription: input.seoDescription?.trim() || null,
+      noindex: input.noindex ?? false,
     },
     select: { id: true },
   });

@@ -18,6 +18,10 @@ export interface UpdateModelInput {
    * Pass an empty string to clear the model's author.
    */
   authorEmail?: string;
+  /** Manual SEO overrides — pass an empty string to clear back to automatic. */
+  seoTitle?: string;
+  seoDescription?: string;
+  noindex?: boolean;
 }
 
 /**
@@ -79,6 +83,21 @@ export async function updateModel(
       data.author = { connect: { id: authorId } };
     }
     changedFields.push("authorEmail");
+  }
+
+  if (input.seoTitle !== undefined) {
+    data.seoTitle = input.seoTitle.trim() || null;
+    changedFields.push("seoTitle");
+  }
+
+  if (input.seoDescription !== undefined) {
+    data.seoDescription = input.seoDescription.trim() || null;
+    changedFields.push("seoDescription");
+  }
+
+  if (input.noindex !== undefined) {
+    data.noindex = input.noindex;
+    changedFields.push("noindex");
   }
 
   await prisma.$transaction(async (tx) => {

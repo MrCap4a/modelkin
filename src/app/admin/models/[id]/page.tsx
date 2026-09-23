@@ -37,8 +37,13 @@ export default async function EditModelPage({ params }: { params: Promise<{ id: 
     tagSlugs: model.tags.map((tag) => tag.slug),
     authorEmail: model.author?.email ?? "",
     imageUrl: model.images[0]?.url ?? null,
-    file: model.files[0] ? { originalName: model.files[0].originalName, size: model.files[0].size } : null,
+    file: model.files[0]
+      ? { originalName: model.files[0].originalName, size: model.files[0].size }
+      : null,
     status: model.status,
+    seoTitle: model.seoTitle ?? "",
+    seoDescription: model.seoDescription ?? "",
+    noindex: model.noindex,
   };
 
   return (

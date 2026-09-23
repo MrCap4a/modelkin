@@ -4,6 +4,7 @@
 
 export { listCatalog } from "./application/list-catalog";
 export { getRandomModels } from "./application/get-random-models";
+export { listRelatedModels } from "./application/list-related-models";
 export { listCatalogTags } from "./application/list-catalog-tags";
 export { CATALOG_DEFAULT_PAGE_SIZE, CATALOG_SORTS } from "./domain/catalog";
 export type {

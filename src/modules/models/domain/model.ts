@@ -14,6 +14,8 @@ export interface ModelImageView {
 export interface ModelTagView {
   slug: string;
   name: string;
+  /** Whether /tag/{slug} exists as a public, indexable landing page for this tag. */
+  seoIndexed: boolean;
 }
 
 export interface ModelAuthorView {
@@ -34,4 +36,9 @@ export interface ModelDetail {
   /** Whether an STL file exists to feed the lazy-loaded 3D viewer. */
   hasViewerModel: boolean;
   publishedAt: Date | null;
+  updatedAt: Date;
+  /** Manual SEO overrides — null means "derive automatically", see generateMetadata. */
+  seoTitle: string | null;
+  seoDescription: string | null;
+  noindex: boolean;
 }

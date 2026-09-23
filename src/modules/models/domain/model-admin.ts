@@ -62,4 +62,8 @@ export interface ModelAdminDetail {
   createdAt: Date;
   updatedAt: Date;
   publishedAt: Date | null;
+  /** Manual SEO overrides — null means "use the automatic value" (see ARCHITECTURE.md). */
+  seoTitle: string | null;
+  seoDescription: string | null;
+  noindex: boolean;
 }

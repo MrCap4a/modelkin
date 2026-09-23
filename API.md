@@ -221,6 +221,7 @@ order (создание заявки гостем), загрузку файло�
 | Загрузка файлов (presigned URL) | `src/modules/files/presentation/actions.ts` | `src/modules/files/application/request-upload-url.ts` |
 | Кабинет автора | `src/app/profile/author/actions.ts` | `src/modules/authors/application/*` |
 | Admin — модели | `src/app/admin/models/actions.ts` | `@modules/models` (`createModel`/`updateModel`/`publishModel`/`hideModel`/`addModelImage`/`addModelFile`) |
+| Admin — теги (включая SEO-индексацию тега) | `src/app/admin/tags/actions.ts` | `@modules/tags` (`createTag`/`renameTag`/`deleteTag`/`updateTagSeo`) |
 | Admin — custom orders | `src/app/admin/custom-orders/actions.ts` | `@modules/custom-orders` (`updateCustomOrderStatus`), плюс прямой presigned-download для вложений (`@infrastructure/storage`) |
 
 Все Server Actions, изменяющие состояние, проверяют авторизацию сервером

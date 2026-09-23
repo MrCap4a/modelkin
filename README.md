@@ -18,11 +18,11 @@ Next.js App Router + PostgreSQL/Prisma + S3-совместимое хранил�
 
 | Слой           | Технология                                             |
 | -------------- | ------------------------------------------------------- |
-| Application    | Next.js 15 (App Router), React 18, TypeScript (strict)  |
+| Application    | Next.js 15 (App Router), React 19, TypeScript (strict)  |
 | Database       | PostgreSQL 16, Prisma ORM                                |
 | Validation     | Zod                                                      |
 | Auth           | Собственная session-based авторизация, HttpOnly cookies  |
-| 3D             | React Three Fiber / Three.js (lazy-loaded)               |
+| 3D             | React Three Fiber v9 / Three.js (lazy-loaded)             |
 | Storage        | S3-совместимое хранилище (MinIO в dev)                   |
 | Логирование    | pino, JSON, посуточная ротация файлов                    |
 | Тесты          | Vitest (unit/integration), Playwright (E2E)              |

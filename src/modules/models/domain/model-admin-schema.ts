@@ -39,6 +39,15 @@ export const modelAdminInputSchema = z.object({
   authorEmail: z
     .union([z.string().trim().email("Некорректный email автора"), z.literal("")])
     .optional(),
+  // Manual SEO overrides — all optional, empty string clears back to the
+  // automatic value (see generateMetadata in models/[slug]/page.tsx).
+  seoTitle: z
+    .union([z.string().trim().max(90, "SEO-заголовок слишком длинный"), z.literal("")])
+    .optional(),
+  seoDescription: z
+    .union([z.string().trim().max(200, "SEO-описание слишком длинное"), z.literal("")])
+    .optional(),
+  noindex: z.boolean().optional(),
 });
 
 export type ModelAdminInput = z.infer<typeof modelAdminInputSchema>;

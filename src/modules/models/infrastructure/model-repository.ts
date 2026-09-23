@@ -32,10 +32,18 @@ export async function findPublishedModelDetailBySlug(slug: string): Promise<Mode
       alt: image.alt,
       sortOrder: image.sortOrder,
     })),
-    tags: model.tags.map((modelTag) => ({ slug: modelTag.tag.slug, name: modelTag.tag.name })),
+    tags: model.tags.map((modelTag) => ({
+      slug: modelTag.tag.slug,
+      name: modelTag.tag.name,
+      seoIndexed: modelTag.tag.seoIndexed,
+    })),
     author: model.author?.name ? { name: model.author.name } : null,
     hasViewerModel: model.files.length > 0,
     publishedAt: model.publishedAt,
+    updatedAt: model.updatedAt,
+    seoTitle: model.seoTitle,
+    seoDescription: model.seoDescription,
+    noindex: model.noindex,
   };
 }
 
@@ -64,8 +72,10 @@ export async function getFirstModelFileStorageKey(modelId: string): Promise<stri
 export async function listPublishedModelSlugsForSitemap(): Promise<
   { slug: string; updatedAt: Date }[]
 > {
+  // noindex: true is a manual per-model opt-out (see Model.noindex) — a
+  // noindexed page has no business being advertised in the sitemap.
   return prisma.model.findMany({
-    where: { status: "PUBLISHED" },
+    where: { status: "PUBLISHED", noindex: false },
     select: { slug: true, updatedAt: true },
     orderBy: { updatedAt: "desc" },
     take: 5000,

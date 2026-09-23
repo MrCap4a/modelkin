@@ -2,11 +2,7 @@ import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@infrastructure/database";
 import { getPublicObjectUrl } from "@infrastructure/storage";
-import type {
-  ModelAdminDetail,
-  ModelAdminStatus,
-  ModelAdminSummary,
-} from "../domain/model-admin";
+import type { ModelAdminDetail, ModelAdminStatus, ModelAdminSummary } from "../domain/model-admin";
 
 /**
  * Admin read/write-side repository — unlike infrastructure/model-repository.ts
@@ -54,6 +50,9 @@ export async function findModelDetailForAdmin(modelId: string): Promise<ModelAdm
     createdAt: model.createdAt,
     updatedAt: model.updatedAt,
     publishedAt: model.publishedAt,
+    seoTitle: model.seoTitle,
+    seoDescription: model.seoDescription,
+    noindex: model.noindex,
   };
 }
 

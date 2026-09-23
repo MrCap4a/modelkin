@@ -105,6 +105,8 @@ export function Gallery({
                 <img
                   src={thumb.image.url}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className="h-full w-full object-cover"
                 />
               )}

@@ -5,7 +5,9 @@ import { getCurrentUser } from "@modules/auth";
 import { AuthCard } from "../_components/auth-card";
 import { LoginForm } from "./login-form";
 
-export const metadata: Metadata = { title: "Вход" };
+// Auth/account pages have no SEO value and shouldn't compete with the
+// homepage for brand-name queries (SEO audit, 2026-09-21).
+export const metadata: Metadata = { title: "Вход", robots: { index: false, follow: true } };
 
 export default async function LoginPage() {
   const user = await getCurrentUser();

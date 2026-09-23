@@ -9,7 +9,8 @@ vi.mock("server-only", () => ({}));
 const { createTag } = await import("@modules/tags/application/create-tag");
 const { renameTag } = await import("@modules/tags/application/rename-tag");
 const { deleteTag } = await import("@modules/tags/application/delete-tag");
-const { listTagsWithUsage } = await import("@modules/tags/application/list-tags");
+const { updateTagSeo } = await import("@modules/tags/application/update-tag-seo");
+const { listTagsWithUsage, getSeoTagPage } = await import("@modules/tags/application/list-tags");
 const { listAuditLogs } = await import("@modules/audit");
 
 function unique(label: string): string {
@@ -44,7 +45,11 @@ describe("tags admin CRUD flow (integration — item 3, categories are admin-man
     expect(tag.name).toBe(name);
     expect(tag.slug).toMatch(/^[a-z0-9-]+$/);
 
-    const audit = await listAuditLogs({ event: "tag.created", entityType: "Tag", entityId: tag.id });
+    const audit = await listAuditLogs({
+      event: "tag.created",
+      entityType: "Tag",
+      entityId: tag.id,
+    });
     expect(audit.items).toHaveLength(1);
   });
 
@@ -58,7 +63,11 @@ describe("tags admin CRUD flow (integration — item 3, categories are admin-man
     expect(renamed.name).toBe("Обновлённое имя");
     expect(renamed.slug).toBe(originalSlug);
 
-    const audit = await listAuditLogs({ event: "tag.updated", entityType: "Tag", entityId: tag.id });
+    const audit = await listAuditLogs({
+      event: "tag.updated",
+      entityType: "Tag",
+      entityId: tag.id,
+    });
     expect(audit.items).toHaveLength(1);
   });
 
@@ -91,11 +100,51 @@ describe("tags admin CRUD flow (integration — item 3, categories are admin-man
     const modelTags = await prisma.modelTag.findMany({ where: { modelId: model.id } });
     expect(modelTags).toHaveLength(0);
 
-    const audit = await listAuditLogs({ event: "tag.deleted", entityType: "Tag", entityId: tag.id });
+    const audit = await listAuditLogs({
+      event: "tag.deleted",
+      entityType: "Tag",
+      entityId: tag.id,
+    });
     expect(audit.items).toHaveLength(1);
   });
 
   it("rejects renaming a non-existent tag", async () => {
     await expect(renameTag("non-existent-id", { name: "X" }, adminId)).rejects.toThrow();
+  });
+
+  it("is not seoIndexed by default, and getSeoTagPage returns null until an admin opts it in (SEO audit, 2026-09-21)", async () => {
+    const tag = await createTag({ name: unique("TPU-пластик") }, adminId);
+    createdTagIds.push(tag.id);
+
+    expect(await getSeoTagPage(tag.slug)).toBeNull();
+
+    const updated = await updateTagSeo(
+      tag.id,
+      {
+        seoIndexed: true,
+        seoTitle: "TPU — STL модели",
+        seoH1: "Модели для печати TPU",
+        seoDescription: "Гибкие модели, проверенные печатью TPU-пластиком.",
+      },
+      adminId,
+    );
+    expect(updated.seoIndexed).toBe(true);
+
+    const page = await getSeoTagPage(tag.slug);
+    expect(page).not.toBeNull();
+    expect(page?.seoTitle).toBe("TPU — STL модели");
+    expect(page?.seoH1).toBe("Модели для печати TPU");
+
+    // Turning it back off removes the public page again without deleting the tag.
+    await updateTagSeo(
+      tag.id,
+      { seoIndexed: false, seoTitle: "", seoH1: "", seoDescription: "" },
+      adminId,
+    );
+    expect(await getSeoTagPage(tag.slug)).toBeNull();
+  });
+
+  it("getSeoTagPage returns null for a tag that doesn't exist at all", async () => {
+    expect(await getSeoTagPage("no-such-tag-slug")).toBeNull();
   });
 });

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { getRandomModels } from "@modules/catalog";
 import { ModelCard } from "./_components/model-card";
@@ -6,6 +7,11 @@ import { SearchBar } from "./_components/search-bar";
 // Always render fresh on every request — a random sample should actually
 // change between visits, not get cached/prerendered once.
 export const dynamic = "force-dynamic";
+
+// Title/description come from the root layout's defaults (SEO audit,
+// 2026-09-21: they already describe the homepage correctly) — only
+// canonical needs to be explicit here, every other indexable page has one.
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function HomePage() {
   const randomModels = await getRandomModels(4);
@@ -63,7 +69,10 @@ export default async function HomePage() {
       <section className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold text-ink">Случайные рекомендации</h2>
-          <Link href="/models" className="text-sm font-semibold text-primary hover:text-primary-hover">
+          <Link
+            href="/models"
+            className="text-sm font-semibold text-primary hover:text-primary-hover"
+          >
             Смотреть все модели →
           </Link>
         </div>
@@ -86,7 +95,9 @@ export default async function HomePage() {
             <span className="text-xs font-semibold uppercase tracking-wide text-primary">
               Как мы разрабатываем модели
             </span>
-            <h2 className="mt-3 text-2xl font-bold text-ink">Модели создаются специально для 3D-печати</h2>
+            <h2 className="mt-3 text-2xl font-bold text-ink">
+              Модели создаются специально для 3D-печати
+            </h2>
             <p className="mt-4 max-w-3xl text-ink-muted">
               Мы проектируем модели с учётом реального процесса печати: от подготовки файла и выбора
               ориентации до стабильного результата и удобного использования. Поэтому их проще

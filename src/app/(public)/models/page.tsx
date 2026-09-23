@@ -1,17 +1,12 @@
 import type { Metadata } from "next";
 import { listCatalog, listCatalogTags, CATALOG_SORTS } from "@modules/catalog";
 import type { CatalogSort } from "@modules/catalog";
+import { getConfig } from "@shared/config";
 import { ModelCard } from "../_components/model-card";
 import { SearchBar } from "../_components/search-bar";
 import { TagPills } from "./_components/tag-pills";
 import { SortSelect } from "./_components/sort-select";
-import { PaginationNav } from "./_components/pagination-nav";
-
-export const metadata: Metadata = {
-  title: "Каталог моделей",
-  description:
-    "Каталог проверенных 3D-моделей в формате STL: органайзеры, декор и интерьер, инструменты, авто и другое.",
-};
+import { PaginationNav } from "@components/shared/pagination-nav";
 
 interface CatalogPageProps {
   searchParams: Promise<{ q?: string; tag?: string; sort?: string; page?: string }>;
@@ -19,6 +14,39 @@ interface CatalogPageProps {
 
 function parseSort(raw: string | undefined): CatalogSort {
   return CATALOG_SORTS.includes(raw as CatalogSort) ? (raw as CatalogSort) : "popular";
+}
+
+/**
+ * A plain `export const metadata` used to cover this page, which meant
+ * every combination of search/tag/sort/page query params shared one
+ * identical <title>/description with no canonical and no noindex — i.e.
+ * search engines could index unbounded ?q=/?tag=/?page= variants as
+ * duplicate content (SEO audit, 2026-09-21). Only the clean /models (no
+ * params, page 1) stays indexable; every filtered/searched/paginated
+ * variant is noindex,follow — the links on it still get crawled, it just
+ * isn't itself a distinct indexable page. A tag admins want as a real
+ * indexable page gets a dedicated /tag/{slug} route instead (see
+ * ARCHITECTURE.md) — the filter itself never becomes one automatically.
+ */
+export async function generateMetadata({ searchParams }: CatalogPageProps): Promise<Metadata> {
+  const sp = await searchParams;
+  const hasFilters = Boolean(sp.q || sp.tag || (sp.sort && sp.sort !== "popular"));
+  const requestedPage = Number(sp.page);
+  const isPaginated = Number.isFinite(requestedPage) && requestedPage > 1;
+
+  const isNoindex = hasFilters || isPaginated;
+
+  return {
+    title: "Каталог моделей",
+    description:
+      "Каталог проверенных 3D-моделей в формате STL: органайзеры, декор и интерьер, инструменты, авто и другое.",
+    // No canonical at all on filtered/paginated variants — mixing noindex
+    // with a canonical pointing at a different URL sends crawlers a mixed
+    // signal (Google's own faceted-navigation guidance: prefer plain
+    // noindex over canonical-to-elsewhere for URLs you want excluded).
+    alternates: isNoindex ? undefined : { canonical: `${getConfig().appUrl}/models` },
+    robots: isNoindex ? { index: false, follow: true } : undefined,
+  };
 }
 
 export default async function CatalogPage({ searchParams }: CatalogPageProps) {

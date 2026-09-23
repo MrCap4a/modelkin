@@ -4,11 +4,127 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 // Concrete file, not the `@modules/tags` barrel — that barrel also
 // re-exports server-only use cases, which breaks in a Client Component.
-import { tagInputSchema } from "@modules/tags/domain/tag-schema";
+import { tagInputSchema, tagSeoInputSchema } from "@modules/tags/domain/tag-schema";
 import type { TagAdminSummary } from "@modules/tags";
-import { createTagAction, deleteTagAction, renameTagAction } from "../actions";
+import { clsx } from "@shared/utils/clsx";
+import { createTagAction, deleteTagAction, renameTagAction, updateTagSeoAction } from "../actions";
 
-function TagRow({ tag }: { tag: TagAdminSummary }) {
+/**
+ * Expandable per-tag panel (SEO audit, 2026-09-21) — opts a tag into its
+ * own indexable /tag/{slug} page. Off by default for every tag (see
+ * ARCHITECTURE.md): most tags exist purely for filtering and should never
+ * become a separate indexable page.
+ */
+function TagSeoPanel({ tag, onClose }: { tag: TagAdminSummary; onClose: () => void }) {
+  const router = useRouter();
+  const [seoIndexed, setSeoIndexed] = useState(tag.seoIndexed);
+  const [seoTitle, setSeoTitle] = useState(tag.seoTitle ?? "");
+  const [seoH1, setSeoH1] = useState(tag.seoH1 ?? "");
+  const [seoDescription, setSeoDescription] = useState(tag.seoDescription ?? "");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleSave() {
+    const parsed = tagSeoInputSchema.safeParse({ seoIndexed, seoTitle, seoH1, seoDescription });
+    if (!parsed.success) {
+      setError(parsed.error.issues[0]?.message ?? "Проверьте поля");
+      return;
+    }
+    setError(null);
+    startTransition(async () => {
+      const res = await updateTagSeoAction(tag.id, parsed.data);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+      onClose();
+    });
+  }
+
+  return (
+    <tr className="border-t border-border bg-surface-alt/60">
+      <td colSpan={4} className="px-6 py-4">
+        <div className="max-w-xl space-y-3">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={seoIndexed}
+              onChange={(e) => setSeoIndexed(e.target.checked)}
+            />
+            Сделать отдельной индексируемой страницей — /tag/{tag.slug}
+          </label>
+
+          <div>
+            <label className="block text-xs font-medium text-ink-muted">
+              SEO title (пусто — автоматически)
+            </label>
+            <input
+              value={seoTitle}
+              onChange={(e) => setSeoTitle(e.target.value)}
+              placeholder={`${tag.name} — STL модели | Моделкин`}
+              className="mt-1 w-full rounded-control border border-border bg-background px-3 py-1.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-ink-muted">
+              H1 на странице (пусто — название категории)
+            </label>
+            <input
+              value={seoH1}
+              onChange={(e) => setSeoH1(e.target.value)}
+              placeholder={tag.name}
+              className="mt-1 w-full rounded-control border border-border bg-background px-3 py-1.5 text-sm text-ink placeholder:text-ink-muted/60 focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-ink-muted">
+              SEO-описание (meta description и вступительный текст на странице)
+            </label>
+            <textarea
+              rows={3}
+              value={seoDescription}
+              onChange={(e) => setSeoDescription(e.target.value)}
+              className="mt-1 w-full rounded-control border border-border bg-background px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
+            />
+          </div>
+
+          {error && <p className="text-xs text-danger">{error}</p>}
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={handleSave}
+              className="rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+            >
+              Сохранить SEO
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-alt"
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
+function TagRow({
+  tag,
+  seoOpen,
+  onToggleSeo,
+}: {
+  tag: TagAdminSummary;
+  seoOpen: boolean;
+  onToggleSeo: () => void;
+}) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(tag.name);
@@ -52,68 +168,83 @@ function TagRow({ tag }: { tag: TagAdminSummary }) {
   }
 
   return (
-    <tr className="border-t border-border">
-      <td className="px-6 py-3">
-        {editing ? (
-          <div>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-              className="w-full max-w-xs rounded-control border border-border bg-background px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
-            />
-            {error && <p className="mt-1 text-xs text-danger">{error}</p>}
-          </div>
-        ) : (
-          <span className="font-medium text-ink">{tag.name}</span>
-        )}
-      </td>
-      <td className="px-6 py-3 text-ink-muted">{tag.slug}</td>
-      <td className="px-6 py-3 text-right text-ink-muted">{tag.modelCount} шт.</td>
-      <td className="px-6 py-3 text-right">
-        {editing ? (
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              disabled={pending}
-              onClick={handleRename}
-              className="rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
-            >
-              Сохранить
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setEditing(false);
-                setName(tag.name);
-                setError(null);
-              }}
-              className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-alt"
-            >
-              Отмена
-            </button>
-          </div>
-        ) : (
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-alt"
-            >
-              Переименовать
-            </button>
-            <button
-              type="button"
-              disabled={pending}
-              onClick={handleDelete}
-              className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger-bg disabled:opacity-60"
-            >
-              Удалить
-            </button>
-          </div>
-        )}
-      </td>
-    </tr>
+    <>
+      <tr className="border-t border-border">
+        <td className="px-6 py-3">
+          {editing ? (
+            <div>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+                className="w-full max-w-xs rounded-control border border-border bg-background px-3 py-1.5 text-sm text-ink focus:border-primary focus:outline-none"
+              />
+              {error && <p className="mt-1 text-xs text-danger">{error}</p>}
+            </div>
+          ) : (
+            <span className="font-medium text-ink">{tag.name}</span>
+          )}
+        </td>
+        <td className="px-6 py-3 text-ink-muted">{tag.slug}</td>
+        <td className="px-6 py-3 text-right text-ink-muted">{tag.modelCount} шт.</td>
+        <td className="px-6 py-3 text-right">
+          {editing ? (
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={pending}
+                onClick={handleRename}
+                className="rounded-control bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover disabled:opacity-60"
+              >
+                Сохранить
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditing(false);
+                  setName(tag.name);
+                  setError(null);
+                }}
+                className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-alt"
+              >
+                Отмена
+              </button>
+            </div>
+          ) : (
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={onToggleSeo}
+                className={clsx(
+                  "rounded-control border px-3 py-1.5 text-xs font-medium hover:bg-surface-alt",
+                  tag.seoIndexed
+                    ? "border-primary/40 text-primary"
+                    : "border-border text-ink-muted",
+                )}
+              >
+                {tag.seoIndexed ? "SEO: включено" : "SEO"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-ink hover:bg-surface-alt"
+              >
+                Переименовать
+              </button>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={handleDelete}
+                className="rounded-control border border-border px-3 py-1.5 text-xs font-medium text-danger hover:bg-danger-bg disabled:opacity-60"
+              >
+                Удалить
+              </button>
+            </div>
+          )}
+        </td>
+      </tr>
+      {seoOpen && <TagSeoPanel tag={tag} onClose={onToggleSeo} />}
+    </>
   );
 }
 
@@ -165,6 +296,8 @@ function CreateTagForm() {
 }
 
 export function TagsManager({ tags }: { tags: TagAdminSummary[] }) {
+  const [seoOpenId, setSeoOpenId] = useState<string | null>(null);
+
   return (
     <div>
       <div className="rounded-card border border-border bg-surface p-6 shadow-card">
@@ -186,7 +319,14 @@ export function TagsManager({ tags }: { tags: TagAdminSummary[] }) {
             </thead>
             <tbody>
               {tags.map((tag) => (
-                <TagRow key={tag.id} tag={tag} />
+                <TagRow
+                  key={tag.id}
+                  tag={tag}
+                  seoOpen={seoOpenId === tag.id}
+                  onToggleSeo={() =>
+                    setSeoOpenId((current) => (current === tag.id ? null : tag.id))
+                  }
+                />
               ))}
             </tbody>
           </table>
