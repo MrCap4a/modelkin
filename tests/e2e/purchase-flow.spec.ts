@@ -36,9 +36,20 @@ test("register, buy a model via mock payment, then download the owned STL", asyn
   await expect(page.getByRole("heading", { name: MODEL_TITLE, level: 1 })).toBeVisible();
 
   // --- Add to cart ----------------------------------------------------------
-  await page.getByRole("button", { name: "Добавить в корзину" }).click();
-  // PurchaseCta re-renders server-side to the "already in cart" link.
-  await expect(page.getByRole("link", { name: /Уже в корзине/ })).toBeVisible();
+  // The button is present in the server-rendered HTML before React finishes
+  // hydrating, so a click that lands in that window is silently lost (no
+  // handler attached yet) — the app's own revalidation (revalidatePath in
+  // the action + router.refresh() in AddToCartButton) is not the issue,
+  // confirmed by reading that code; this was observed as an intermittent
+  // "flaky" CI failure (passed on a later retry), the signature of a
+  // hydration race, not a deterministic bug. Retrying the click itself
+  // (not just the assertion) recovers from a lost first click once
+  // hydration completes.
+  await expect(async () => {
+    await page.getByRole("button", { name: "Добавить в корзину" }).click();
+    // PurchaseCta re-renders server-side to the "already in cart" link.
+    await expect(page.getByRole("link", { name: /Уже в корзине/ })).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 15_000 });
 
   // --- Cart → checkout --------------------------------------------------
   await page.goto("/cart");
