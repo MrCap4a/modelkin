@@ -144,8 +144,35 @@ jobs:
       - name: Build
         run: npm run build
 
+      # playwright.config.ts deliberately sets `webServer: undefined` when
+      # `CI` is set — its own comment says the workflow is expected to
+      # start the app itself, but this job never did, so every E2E test
+      # failed with ERR_CONNECTION_REFUSED. `next start` forces
+      # NODE_ENV=production regardless of the shell env (verified locally:
+      # even with NODE_ENV=development set beforehand, the prod-only HSTS
+      # header still came back) — that makes the session cookie `Secure`,
+      # but Chrome (and Playwright's Chromium) treats http://localhost as
+      # a secure context and sends Secure cookies there anyway, so this
+      # doesn't break login/session-dependent E2E flows.
+      - name: Start application
+        run: |
+          nohup npm run start > /tmp/modelkin-next.log 2>&1 &
+          echo $! > /tmp/modelkin-next.pid
+
+      - name: Wait for application
+        run: |
+          timeout 60 sh -c '
+            until curl --fail --silent http://127.0.0.1:3000/api/health > /dev/null; do
+              sleep 1
+            done
+          '
+
       - name: Run E2E tests
         run: npm run test:e2e
+
+      - name: Dump application logs
+        if: failure()
+        run: cat /tmp/modelkin-next.log
 
       - uses: actions/upload-artifact@v4
         if: always()
