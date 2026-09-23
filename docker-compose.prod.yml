@@ -15,6 +15,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # Explicit on purpose: Dockerfile's stages are deps → builder →
+      # runner → worker, in that order. Without --target, `docker build`
+      # builds up through the *last* stage in the file — that's `worker`,
+      # not the web-serving `runner` stage — so omitting this would have
+      # silently built `app` as the worker image (no web server at all,
+      # health check would just fail forever). Found and confirmed by
+      # actually building it that way.
+      target: runner
     restart: unless-stopped
     env_file: .env
     # Bound to loopback only — a host-level reverse proxy (nginx/etc., see

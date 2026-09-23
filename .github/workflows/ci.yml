@@ -153,3 +153,66 @@ jobs:
           name: playwright-report
           path: playwright-report/
           retention-days: 7
+
+  # Publishes to GitHub Container Registry so a server deploy can just
+  # `docker pull` a known-good, already-tested image instead of rebuilding
+  # from source on the server (see DEPLOYMENT.md). Gated on both prior jobs
+  # and on being an actual push to master (not a pull_request, and not a PR
+  # from a fork, which wouldn't have push access to ghcr.io anyway) — never
+  # publish an image that hasn't passed every check.
+  publish-image:
+    runs-on: ubuntu-latest
+    needs: [build-and-test, e2e]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # ghcr.io requires a lowercase image path; github.repository preserves
+      # the owner/repo casing as typed on GitHub (e.g. "MrCap4a/modelkin").
+      - name: Compute lowercase image name
+        id: vars
+        run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+      # Web app — Dockerfile's `runner` stage (see docker-compose.prod.yml's
+      # `app` service, which now also pins this explicitly — building with
+      # no --target defaults to the *last* stage in the Dockerfile, which is
+      # `worker`, not `runner`; confirmed by actually building it that way).
+      - name: Build and push app image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: runner
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}:latest
+            ${{ steps.vars.outputs.image }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Background worker — Dockerfile's `worker` stage. Separate image
+      # (not just a different tag of the app image) since it's a distinct
+      # runtime role with a different entrypoint/CMD, matching
+      # docker-compose.prod.yml's `worker` service.
+      - name: Build and push worker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: worker
+          push: true
+          tags: |
+            ${{ steps.vars.outputs.image }}-worker:latest
+            ${{ steps.vars.outputs.image }}-worker:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

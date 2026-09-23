@@ -10,6 +10,18 @@ Next.js собирается в standalone-режиме (`output: "standalone"` 
 `next.config.ts`) — production-образ содержит только минимальный сервер и
 реально используемые зависимости, без dev-инструментов.
 
+CI (`.github/workflows/ci.yml`, job `publish-image`) после каждого успешного
+прохода тестов на `master` публикует уже собранные образы в GitHub Container
+Registry — `ghcr.io/<owner>/modelkin:latest` (веб-приложение) и
+`ghcr.io/<owner>/modelkin-worker:latest` (фоновый воркер), плюс теги по
+хэшу коммита для точного отката. Ниже описан флоу сборки на самом сервере
+(`docker compose ... up -d --build`) — он остаётся рабочим и самодостаточным
+(не требует доступа к ghcr.io), но если сервер слабый или хочется не тратить
+время/ресурсы на сборку на месте, `docker-compose.prod.yml` можно
+переключить с `build:` на `image: ghcr.io/<owner>/modelkin:latest` (и
+аналогично для `worker`) — тогда деплой сведётся к `docker compose pull &&
+docker compose up -d`. Это отдельное решение, сейчас не применено.
+
 ## Prerequisites на сервере
 
 - Docker Engine + Docker Compose v2
