@@ -16,8 +16,10 @@ Next.js собирается в standalone-режиме (`output: "standalone"` 
 - Доступ к PostgreSQL (либо managed-сервис, либо контейнер — см. ниже)
 - Доступ к S3-совместимому хранилищу (managed S3, либо самостоятельно
   развёрнутый MinIO/аналог)
-- Домен + TLS-терминация (реверс-прокси/балансировщик — не входит в этот
-  репозиторий; приложение слушает обычный HTTP на порту 3000)
+- Домен + nginx + certbot на сервере для TLS-терминации — см. [раздел
+  6](#6-tls--домен-nginx--lets-encrypt) ниже. Приложение само по себе
+  слушает обычный HTTP и намеренно публикуется только на `127.0.0.1`
+  (`docker-compose.prod.yml`), не наружу.
 
 ## 1. Подготовка окружения
 
@@ -79,15 +81,46 @@ docker compose -f docker-compose.prod.yml up -d --build
 тот же образ, `worker` — с другим entrypoint/командой (см.
 `docker-compose.prod.yml`).
 
-## 6. Health check
+## 6. TLS / домен (nginx + Let's Encrypt)
+
+Выбран этот вариант (а не Dockerized Caddy/Traefik с портами 80/443) именно
+потому, что сервер уже хостит другой сайт — почти наверняка на нём уже
+работает nginx на портах 80/443 для этого сайта, и новый Docker-контейнер,
+пытающийся занять те же порты, только сломает существующий сайт. nginx на
+хосте + отдельный vhost для нового домена — стандартный способ держать
+несколько сайтов на одном сервере, не трогая уже работающие.
+
+1. Установите nginx и certbot на сервере, если их ещё нет:
+   ```bash
+   apt install nginx certbot python3-certbot-nginx   # Debian/Ubuntu
+   ```
+2. Поднимите `app` (см. шаг 5) — важно, чтобы `APP_HOST_PORT` в `.env` не
+   конфликтовал с портом, который уже слушает существующий сайт на этом
+   сервере.
+3. Скопируйте готовый конфиг [`deploy/nginx/modelkin.conf.example`](./deploy/nginx/modelkin.conf.example),
+   подставьте реальный домен и (если меняли) `APP_HOST_PORT` — точные шаги
+   описаны в комментариях самого файла.
+4. `nginx -t && systemctl reload nginx`
+5. `certbot --nginx -d modelkin.ru -d www.modelkin.ru` — certbot сам допишет
+   в конфиг HTTPS-блок, редирект с HTTP на HTTPS и настроит автопродление
+   (systemd-таймер/cron, ставится вместе с certbot) — вручную ничего
+   продлевать не нужно.
+6. Проверьте `https://modelkin.ru/api/health` — должно вернуть `200`.
+
+`APP_URL` в `.env` должен быть реальным `https://`-доменом (не
+`http://localhost:3000`) — от него зависят абсолютные ссылки в письмах и
+совпадение `Origin` в same-origin CSRF-проверке (`src/middleware.ts`).
+
+## 7. Health check
 
 ```bash
-curl -f http://<host>:3000/api/health
+curl -f http://127.0.0.1:${APP_HOST_PORT:-3000}/api/health   # локально на сервере, в обход nginx
+curl -f https://modelkin.ru/api/health                        # публично, после настройки TLS (шаг 6)
 ```
 
 Ожидается `{"status":"ok","checks":{"database":"ok"}}` с кодом `200`.
-Настройте это как health check вашего реверс-прокси/оркестратора — контейнер
-`app` уже имеет встроенный Docker healthcheck с тем же URL.
+Настройте публичный URL как health check вашего оркестратора/мониторинга —
+контейнер `app` уже имеет встроенный Docker healthcheck на локальный URL.
 
 ## Обновление (redeploy)
 
@@ -133,7 +166,7 @@ recovery.
 - [ ] `NODE_ENV=production`
 - [ ] Бэкапы PostgreSQL и object storage настроены и проверены (реальный
       restore хотя бы раз протестирован не на проде)
-- [ ] TLS-терминация настроена перед приложением (реверс-прокси)
+- [ ] TLS настроен через nginx + certbot (см. [раздел 6](#6-tls--домен-nginx--lets-encrypt)), `app` публикуется только на `127.0.0.1`
 - [ ] `GET /api/health` зелёный
 - [ ] Логи пишутся и ротируются (`logs/<сегодня>/application.log`
       появляется и растёт)

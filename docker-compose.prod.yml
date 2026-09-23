@@ -17,8 +17,14 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+    # Bound to loopback only — a host-level reverse proxy (nginx/etc., see
+    # DEPLOYMENT.md) terminates TLS and forwards here. Never publish this on
+    # the public interface directly: X-Forwarded-For is trusted as-is for
+    # rate-limit/audit IPs (src/modules/auth/infrastructure/get-client-ip.ts),
+    # which is only safe when the only thing able to reach this port is the
+    # proxy itself.
     ports:
-      - "3000:3000"
+      - "127.0.0.1:${APP_HOST_PORT:-3000}:3000"
     volumes:
       - app-logs:/app/logs
     healthcheck:
