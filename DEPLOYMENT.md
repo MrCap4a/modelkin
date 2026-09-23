@@ -14,13 +14,10 @@ CI (`.github/workflows/ci.yml`, job `publish-image`) после каждого �
 прохода тестов на `master` публикует уже собранные образы в GitHub Container
 Registry — `ghcr.io/<owner>/modelkin:latest` (веб-приложение) и
 `ghcr.io/<owner>/modelkin-worker:latest` (фоновый воркер), плюс теги по
-хэшу коммита для точного отката. Ниже описан флоу сборки на самом сервере
-(`docker compose ... up -d --build`) — он остаётся рабочим и самодостаточным
-(не требует доступа к ghcr.io), но если сервер слабый или хочется не тратить
-время/ресурсы на сборку на месте, `docker-compose.prod.yml` можно
-переключить с `build:` на `image: ghcr.io/<owner>/modelkin:latest` (и
-аналогично для `worker`) — тогда деплой сведётся к `docker compose pull &&
-docker compose up -d`. Это отдельное решение, сейчас не применено.
+хэшу коммита для точного отката. Ниже описаны два флоу — сборка на самом
+сервере (шаги 1–7, самодостаточный, без доступа к ghcr.io) и более быстрый
+вариант с готовыми образами (раздел «Быстрый деплой из готовых образов»
+после шага 7) — оба рабочие, выбирайте по ситуации.
 
 ## Prerequisites на сервере
 
@@ -133,6 +130,54 @@ curl -f https://modelkin.ru/api/health                        # публично
 Ожидается `{"status":"ok","checks":{"database":"ok"}}` с кодом `200`.
 Настройте публичный URL как health check вашего оркестратора/мониторинга —
 контейнер `app` уже имеет встроенный Docker healthcheck на локальный URL.
+
+## Быстрый деплой из готовых образов (без сборки на сервере)
+
+Вместо шагов 1–7 выше (`git clone` + сборка) — то же самое, но `app`/`worker`
+скачиваются уже собранными и протестированными из ghcr.io вместо сборки на
+месте. Нужен файл `docker-compose.prod.pull.yml` из репозитория (override,
+переключает `build:` на `image:`) — сам `docker-compose.prod.yml` не
+меняется.
+
+1. Установите Docker, если его ещё нет на сервере:
+   ```bash
+   curl -fsSL https://get.docker.com | sh
+   ```
+2. Авторизуйтесь в GHCR (репозиторий приватный — нужен GitHub Personal
+   Access Token с правом `read:packages`, https://github.com/settings/tokens):
+   ```bash
+   echo "<ваш GitHub PAT>" | docker login ghcr.io -u <ваш GitHub логин> --password-stdin
+   ```
+3. Заберите только нужные файлы (полный `git clone` тоже подойдёт, но не
+   обязателен для этого флоу):
+   ```bash
+   mkdir modelkin && cd modelkin
+   curl -fsSLO https://raw.githubusercontent.com/<owner>/modelkin/master/docker-compose.prod.yml
+   curl -fsSLO https://raw.githubusercontent.com/<owner>/modelkin/master/docker-compose.prod.pull.yml
+   curl -fsSLO https://raw.githubusercontent.com/<owner>/modelkin/master/.env.example
+   mkdir -p deploy/nginx && curl -fsSLo deploy/nginx/modelkin.conf.example \
+     https://raw.githubusercontent.com/<owner>/modelkin/master/deploy/nginx/modelkin.conf.example
+   ```
+4. `cp .env.example .env`, заполните реальными значениями (см. шаги 1–3
+   выше — тот же набор переменных, ничего специфичного для этого флоу).
+5. Подставьте реальный `<owner>` в `docker-compose.prod.pull.yml` (тот же
+   регистр, что вычисляет `.github/workflows/ci.yml`'s `publish-image`
+   job — приводится к нижнему регистру автоматически там, здесь впишите
+   вручную).
+6. Заберите образы и поднимите стек:
+   ```bash
+   docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml pull
+   docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml up -d
+   ```
+7. Дальше — TLS (шаг 6 выше) и health check (шаг 7 выше) точно так же, как
+   и при сборке на сервере.
+
+Redeploy на новую версию в этом флоу — не `git pull` (репозиторий тут не
+клонирован), а просто:
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml pull
+docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml up -d
+```
 
 ## Обновление (redeploy)
 

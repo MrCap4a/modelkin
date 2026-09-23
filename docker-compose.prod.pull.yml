@@ -1,0 +1,18 @@
+# Override for docker-compose.prod.yml: pull the CI-built images from
+# GitHub Container Registry instead of building on the server (see
+# DEPLOYMENT.md, section "Быстрый деплой из готовых образов"). Usage:
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml pull
+#   docker compose -f docker-compose.prod.yml -f docker-compose.prod.pull.yml up -d
+#
+# Replace <owner> below with the real GitHub account/org the images are
+# published under (see .github/workflows/ci.yml's `publish-image` job —
+# same lowercase form it computes from github.repository).
+services:
+  app:
+    image: ghcr.io/<owner>/modelkin:latest
+    build: !reset null
+
+  worker:
+    image: ghcr.io/<owner>/modelkin-worker:latest
+    build: !reset null
