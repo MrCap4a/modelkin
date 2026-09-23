@@ -43,16 +43,7 @@ function toFileAttachment(row: CustomOrderFileRow): CustomOrderFileAttachment {
 
 function toDetail(row: CustomOrderRow, files: CustomOrderFileRow[]): CustomOrderDetail {
   return {
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    contactType: row.contactType as ContactType,
-    contactValue: row.contactValue,
-    status: row.status as CustomOrderStatus,
-    fileCount: files.length,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
-    description: row.description,
+    ...toSummary(row, files.length),
     files: files.map(toFileAttachment),
   };
 }
@@ -65,6 +56,7 @@ function toSummary(row: CustomOrderRow, fileCount: number): CustomOrderSummary {
     contactType: row.contactType as ContactType,
     contactValue: row.contactValue,
     status: row.status as CustomOrderStatus,
+    description: row.description,
     fileCount,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,

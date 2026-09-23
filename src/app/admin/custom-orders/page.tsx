@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listCustomOrders, CONTACT_TYPE_LABELS, type CustomOrderStatus } from "@modules/custom-orders";
+import {
+  listCustomOrders,
+  CONTACT_TYPE_LABELS,
+  type CustomOrderStatus,
+} from "@modules/custom-orders";
 import { clsx } from "@shared/utils/clsx";
 import { PageHeader } from "../_components/page-header";
 import { StatusBadge } from "../_components/status-badge";
@@ -17,13 +21,21 @@ const TABS: { value: CustomOrderStatus | "ALL"; label: string }[] = [
 ];
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString("ru-RU", { day: "2-digit", month: "long" }) +
+  return (
+    date.toLocaleDateString("ru-RU", { day: "2-digit", month: "long" }) +
     ", " +
-    date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" })
+  );
 }
 
 function isValidStatus(value: string | undefined): value is CustomOrderStatus {
-  return value === "NEW" || value === "IN_PROGRESS" || value === "WAITING_FOR_REPLY" || value === "COMPLETED" || value === "CANCELLED";
+  return (
+    value === "NEW" ||
+    value === "IN_PROGRESS" ||
+    value === "WAITING_FOR_REPLY" ||
+    value === "COMPLETED" ||
+    value === "CANCELLED"
+  );
 }
 
 export default async function AdminCustomOrdersPage({
@@ -51,20 +63,28 @@ export default async function AdminCustomOrdersPage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8 sm:px-8">
-      <PageHeader title="Заявки на индивидуальный заказ" subtitle="Разработка 3D-моделей под задачи клиентов" />
+      <PageHeader
+        title="Заявки на индивидуальный заказ"
+        subtitle="Разработка 3D-моделей под задачи клиентов"
+      />
 
       <div className="mt-6 flex flex-wrap gap-2">
         {TABS.map((tab) => {
           const count = tab.value === "ALL" ? allOrders.length : counts[tab.value];
           const active = activeStatus === tab.value;
-          const href = tab.value === "ALL" ? "/admin/custom-orders" : `/admin/custom-orders?status=${tab.value}`;
+          const href =
+            tab.value === "ALL"
+              ? "/admin/custom-orders"
+              : `/admin/custom-orders?status=${tab.value}`;
           return (
             <Link
               key={tab.value}
               href={href}
               className={clsx(
                 "rounded-control px-4 py-2 text-sm font-medium transition-colors",
-                active ? "bg-ink text-white" : "border border-border bg-surface text-ink hover:border-primary/40",
+                active
+                  ? "bg-ink text-white"
+                  : "border border-border bg-surface text-ink hover:border-primary/40",
               )}
             >
               {tab.label}
@@ -101,12 +121,20 @@ export default async function AdminCustomOrdersPage({
                       {CONTACT_TYPE_LABELS[order.contactType]}: {order.contactValue}
                     </p>
                   </td>
-                  <td className="max-w-xs truncate px-6 py-3 text-ink-muted">—</td>
-                  <td className="px-6 py-3">
-                    <StatusBadge label={STATUS_LABEL[order.status]} tone={STATUS_TONE[order.status]} />
+                  <td className="max-w-xs truncate px-6 py-3 text-ink-muted">
+                    {order.description}
                   </td>
                   <td className="px-6 py-3">
-                    <Link href={`/admin/custom-orders/${order.id}`} className="font-medium text-primary hover:underline">
+                    <StatusBadge
+                      label={STATUS_LABEL[order.status]}
+                      tone={STATUS_TONE[order.status]}
+                    />
+                  </td>
+                  <td className="px-6 py-3">
+                    <Link
+                      href={`/admin/custom-orders/${order.id}`}
+                      className="font-medium text-primary hover:underline"
+                    >
                       Открыть →
                     </Link>
                   </td>
