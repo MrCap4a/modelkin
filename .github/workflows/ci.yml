@@ -84,14 +84,18 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-      minio:
-        image: bitnami/minio:latest
-        env:
-          MINIO_ROOT_USER: modelkin
-          MINIO_ROOT_PASSWORD: modelkin-secret
-          MINIO_DEFAULT_BUCKETS: modelkin-test
-        ports: ["9000:9000"]
-
+    # No `minio` entry here (unlike `postgres` above): GitHub Actions
+    # `services:` containers always run with the image's baked-in default
+    # command and cannot be given `command:`/`args:` the way docker-compose
+    # allows — MinIO's official image needs `server /data` as its command
+    # to actually start (verified locally: with no command it just prints
+    # --help and exits 0), so it can't be run as a `services:` entry at
+    # all. Started as a plain `docker run` step below instead, matching
+    # docker-compose.yml's dev `minio` service exactly (same image, same
+    # command) rather than the unrelated `bitnami/minio` image this job
+    # used before — that image's `:latest` tag stopped resolving after
+    # Bitnami's 2025 move of its free-tier images off the `bitnami/`
+    # namespace, and pinning an old tag there risks the same rot again.
     steps:
       - uses: actions/checkout@v4
 
@@ -110,6 +114,29 @@ jobs:
         run: |
           npx prisma generate
           npx prisma migrate deploy
+
+      # Same image + command as the dev `minio` service in docker-compose.yml.
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio \
+            -p 9000:9000 -p 9001:9001 \
+            -e MINIO_ROOT_USER=modelkin \
+            -e MINIO_ROOT_PASSWORD=modelkin-secret \
+            quay.io/minio/minio:latest server /data --console-address ":9001"
+          timeout 30 sh -c 'until curl -sf http://localhost:9000/minio/health/live; do sleep 1; done'
+
+      # Mirrors docker-compose.yml's `minio-init` service: creates the
+      # bucket and makes previews/avatars public-read (the app serves
+      # those as plain <img src>, never through a presigned URL).
+      - name: Create MinIO bucket
+        run: |
+          docker run --rm --network host --entrypoint sh quay.io/minio/mc:latest -c "
+            mc alias set local http://localhost:9000 modelkin modelkin-secret &&
+            mc mb local/modelkin-test &&
+            mc anonymous set none local/modelkin-test &&
+            mc anonymous set download local/modelkin-test/previews &&
+            mc anonymous set download local/modelkin-test/avatars
+          "
 
       - name: Seed database
         run: npm run db:seed
